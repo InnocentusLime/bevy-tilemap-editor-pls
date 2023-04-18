@@ -1,0 +1,11 @@
+[package]
+name = "bevy-tilemap-editor-pls"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = "0.10"
+bevy_editor_pls = "0.4"
+bevy_ecs_tilemap = "0.10.0"

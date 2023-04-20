@@ -62,17 +62,28 @@ impl EditorWindow for TilemapEditorWindow {
             let scaled_size = ref_rect.size();
 
             let mouse_rel_pos = p - ref_rect.min;
+            let grid_cell = egui::pos2(
+                (mouse_rel_pos.x / scaled_size.x).floor(),
+                (mouse_rel_pos.y / scaled_size.y).floor(),
+            );
+            let grid_cell_int = (
+                grid_cell.x as i64,
+                -(grid_cell.y as i64),
+            );
             let rect_pos = egui::pos2(
-                scaled_size.x * (mouse_rel_pos.x / scaled_size.x).floor(),
-                scaled_size.y * (mouse_rel_pos.y / scaled_size.y).floor(),
+                scaled_size.x * grid_cell.x,
+                scaled_size.y * grid_cell.y,
             ) + ref_rect.min.to_vec2();
 
-            // No zoom: [383.3 278.0]
             painter.rect_filled(
                 egui::Rect::from_min_size(rect_pos, scaled_size),
                 0.0,
                 egui::Color32::RED,
             );
+
+            if ui.input(|x| x.pointer.button_pressed(egui::PointerButton::Primary)) {
+                dbg!(grid_cell_int);
+            }
         }
     }
 }

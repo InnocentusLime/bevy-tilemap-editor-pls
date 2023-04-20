@@ -55,13 +55,21 @@ impl EditorWindow for TilemapEditorWindow {
                 Some(x) => x,
                 None => return,
             };
+            let ref_rect =  egui::Rect {
+                min: egui::pos2(pos.x, rect.size().y - refr.y) + rect.min.to_vec2(),
+                max: egui::pos2(refr.x, rect.size().y - pos.y) + rect.min.to_vec2(),
+            };
+            let scaled_size = ref_rect.size();
+
+            let mouse_rel_pos = p - ref_rect.min;
+            let rect_pos = egui::pos2(
+                scaled_size.x * (mouse_rel_pos.x / scaled_size.x).floor(),
+                scaled_size.y * (mouse_rel_pos.y / scaled_size.y).floor(),
+            ) + ref_rect.min.to_vec2();
 
             // No zoom: [383.3 278.0]
             painter.rect_filled(
-                egui::Rect {
-                    min: egui::pos2(pos.x, rect.size().y - refr.y) + rect.min.to_vec2(),
-                    max: egui::pos2(refr.x, rect.size().y - pos.y) + rect.min.to_vec2(),
-                },
+                egui::Rect::from_min_size(rect_pos, scaled_size),
                 0.0,
                 egui::Color32::RED,
             );

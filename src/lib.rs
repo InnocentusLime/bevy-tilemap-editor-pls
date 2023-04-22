@@ -190,40 +190,32 @@ impl EditorWindow for TilemapEditorWindow {
     const NAME: &'static str = "Tilemap editor";
 
     fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
-        let TilemapEditorState {
-            kind,
-            mirror_flags,
-            color,
-        } = *cx.state::<Self>().unwrap();
+        let state = cx.state_mut::<Self>().unwrap();
 
-        match kind {
+        match &mut state.kind {
             TilemapEditorStateKind::PickingTilemap => {
                 let pick = world.query_filtered::<Entity, With<TilemapSize>>()
                     .iter_manual(world)
                     .find(|_| ui.button("Tilemap").clicked());
 
                 if let Some(tilemap) = pick {
-                    *cx.state_mut::<Self>().unwrap() = TilemapEditorState {
-                        kind: TilemapEditorStateKind::EditingTilemap {
-                            tilemap_entity: tilemap,
-                            current_tile: TileTextureIndex(1),
-                        },
-                        mirror_flags,
-                        color,
+                    state.kind = TilemapEditorStateKind::EditingTilemap {
+                        tilemap_entity: tilemap,
+                        current_tile: TileTextureIndex(0),
                     };
                 }
             },
-            TilemapEditorStateKind::EditingTilemap { tilemap_entity, .. } => {
+            TilemapEditorStateKind::EditingTilemap {
+                tilemap_entity,
+                current_tile,
+            } => {
                 if ui.button("Exit").clicked() {
-                    *cx.state_mut::<Self>().unwrap() = TilemapEditorState {
-                        kind: TilemapEditorStateKind::PickingTilemap,
-                        mirror_flags,
-                        color,
-                    }
+                    state.kind = TilemapEditorStateKind::PickingTilemap;
+                    return;
                 }
 
                 let texture = world.query::<&TilemapTexture>()
-                    .get(world, tilemap_entity)
+                    .get(world, *tilemap_entity)
                     .unwrap()
                     .clone();
                 let (texture_id, texture_size) = match texture {
@@ -239,7 +231,7 @@ impl EditorWindow for TilemapEditorWindow {
                     _ => todo!(),
                 };
 
-                egui::ScrollArea::both()
+                let resp = egui::ScrollArea::both()
                 .always_show_scroll(true)
                 .max_height(200.0)
                 .max_width(200.0)
@@ -248,8 +240,46 @@ impl EditorWindow for TilemapEditorWindow {
                     ui.image(
                         texture_id,
                         egui::vec2(texture_size.x, texture_size.y),
-                    );
+                    )
                 });
+
+                let rect = resp.inner_rect;
+                if !ui.rect_contains_pointer(rect) {
+                    return;
+                }
+                let pos = if let Some(p) = ui.input(|x| x.pointer.hover_pos()) {
+                    p
+                } else { return; };
+
+                let p = pos - rect.min.to_vec2();
+                let world_pos = p + resp.state.offset;
+                if world_pos.x >= texture_size.x || world_pos.y >= texture_size.y {
+                    return;
+                }
+
+                let tile_offset = egui::pos2(
+                    world_pos.x / 16.0,
+                    world_pos.y / 16.0,
+                ).floor();
+                let tile_ui_offset = egui::pos2(
+                    tile_offset.x * 16.0,
+                    tile_offset.y * 16.0,
+                ) - resp.state.offset + rect.min.to_vec2();
+
+                ui.painter().rect_stroke(
+                    egui::Rect::from_min_size(
+                        tile_ui_offset,
+                        egui::vec2(16.0, 16.0),
+                    ),
+                    0.0,
+                    egui::Stroke::new(1.0, egui::Color32::RED)
+                );
+
+                if ui.input(|x| x.key_pressed(egui::Key::P)) {
+                    let tile_id = tile_offset.x as u32 +
+                        (tile_offset.y as u32) * (texture_size.x as u32) / 16;
+                    *current_tile = TileTextureIndex(tile_id);
+                }
             }
         }
     }

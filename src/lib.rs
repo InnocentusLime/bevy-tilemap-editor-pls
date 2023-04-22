@@ -1,89 +1,270 @@
-use bevy::prelude::*;
-use bevy_ecs_tilemap::{tiles::*, prelude::TilemapGridSize};
+use bevy::{prelude::*, ecs::query::WorldQuery};
+use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{editor_window::{EditorWindow, EditorWindowContext}, egui::{self, remap}, AddEditorWindow, default_windows::cameras::EditorCamera};
+use bevy_egui::EguiUserTextures;
 
 #[derive(Default, Clone, Copy, Debug)]
-pub enum TilemapEditorState {
+pub enum TilemapEditorStateKind {
     #[default]
     PickingTilemap,
     EditingTilemap {
-        tilemap: Entity,
+        tilemap_entity: Entity,
         current_tile: TileTextureIndex,
-        mirror_flags: TileFlip,
-        color: TileColor,
-        cursor_pos: TilePos,
     },
 }
 
-pub struct TilemapEditorWindow {
-    state: TilemapEditorState,
+#[derive(Default)]
+pub struct TilemapEditorState {
+    kind: TilemapEditorStateKind,
+    mirror_flags: TileFlip,
+    color: TileColor,
+}
+
+pub struct TilemapEditorWindow;
+
+#[derive(Debug)]
+enum CursorInfo {
+    OnMap {
+        tile_id: TilePos,
+        display_rect: egui::Rect,
+    },
+    OutofBounds,
+}
+
+#[derive(Debug)]
+struct EditorView {
+    cursor_info: CursorInfo,
+    tilemap_bounds: egui::Rect,
+}
+
+// Calculates the visual state of the editor when its
+// in the tile painting state.
+// The pointer post must be given relative to the game viewport
+// and WILL be returned relative to the game viewport -- not the global coordinates.
+fn tilepainting_view(
+    viewport_rect: egui::Rect,
+    pointer_pos: egui::Pos2,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    tilemap_transform: &GlobalTransform,
+    tilemap_size: &TilemapSize,
+    tilemap_grid_size: &TilemapGridSize,
+    tilemap_tile_size: &TilemapTileSize,
+) -> EditorView {
+    // The origin of the tilemap is the center of the bottom-left tile.
+    // Knowing that, we can calculate the visual size of a cell IN THE TILE GRID.
+    // FIXME this 100% doesn't work if the tilemap itself is also transformed.
+    let pointer_pos = pointer_pos - viewport_rect.min.to_vec2();
+    let reftile_origin_off = Vec2::from(tilemap_tile_size) / 2.0f32;
+    let ref_world_point1 = tilemap_transform.translation().truncate() - reftile_origin_off;
+    let ref_world_point2 = ref_world_point1 + Vec2::from(tilemap_grid_size);
+    let ref_world_point3 = ref_world_point1 + Vec2::new(
+        (tilemap_size.x as f32) * tilemap_grid_size.x,
+        (tilemap_size.y as f32) * tilemap_grid_size.y,
+    );
+
+    // Now we apply the view camera view to see how the user sees the tile and the tilemap.
+    // We readd 0.5 as a z coordinate to ensure that `world_to_viewport` doesn't fail.
+    // NOTE: Make a PR for bevy to document when these functions fail.
+    let refp_1 = camera.world_to_viewport(
+        camera_transform,
+        ref_world_point1.extend(0.5),
+    ).expect("Coordinate transformation shouldn't have failed (point 1)");
+    let refp_2 = camera.world_to_viewport(
+        camera_transform,
+        ref_world_point2.extend(0.5),
+    ).expect("Coordinate transformation shouldn't have failed (point 2)");
+    let refp_3 = camera.world_to_viewport(
+        camera_transform,
+        ref_world_point3.extend(0.5),
+    ).expect("Coordinate transformation shouldn't have failed (point 3)");
+
+    // Rects which represent the tile and the tilemap in the viewport
+    // Viewport coordinates in bevy have a flipped Y axis
+    let ui_origin_tile_rect = egui::Rect {
+        min: egui::pos2(refp_1.x, viewport_rect.size().y - refp_2.y),
+        max: egui::pos2(refp_2.x, viewport_rect.size().y - refp_1.y),
+    };
+    let ui_tilemap_rect = egui::Rect {
+        min: egui::pos2(refp_1.x, viewport_rect.size().y - refp_3.y),
+        max: egui::pos2(refp_3.x, viewport_rect.size().y - refp_1.y),
+    };
+    let pointer_origin_off = pointer_pos - ui_origin_tile_rect.min.to_vec2();
+    let hovered_tile_corner = egui::pos2(
+        pointer_origin_off.x / ui_origin_tile_rect.size().x,
+        pointer_origin_off.y / ui_origin_tile_rect.size().y,
+    ).floor();
+    let ui_hovered_tile_corner = egui::pos2(
+        hovered_tile_corner.x * ui_origin_tile_rect.size().x,
+        hovered_tile_corner.y * ui_origin_tile_rect.size().y,
+    ) + ui_origin_tile_rect.min.to_vec2();
+
+    let cursor_info = if ui_tilemap_rect.contains(pointer_pos) {
+        CursorInfo::OnMap {
+            tile_id: TilePos {
+                x: hovered_tile_corner.x as u32,
+                y: (-hovered_tile_corner.y) as u32,
+            },
+            display_rect: egui::Rect {
+                min: ui_hovered_tile_corner,
+                max: ui_hovered_tile_corner + ui_origin_tile_rect.size(),
+            }.translate(viewport_rect.min.to_vec2()),
+        }
+    } else {
+        CursorInfo::OutofBounds
+    };
+
+    EditorView {
+        cursor_info,
+        tilemap_bounds: ui_tilemap_rect.translate(viewport_rect.min.to_vec2()),
+    }
+}
+
+fn tilepainting_state(
+    tilemap_entity: Entity,
+    current_tile: TileTextureIndex,
+    world: &mut World,
+    ui: &mut egui::Ui,
+) {
+    let viewport_rect = ui.clip_rect();
+    // FIXME this painter doesn't have the top bar clipped.
+    let painter = ui.painter_at(viewport_rect);
+    let pos = ui.input(|x| x.pointer.hover_pos());
+
+    let mut pan_cam_q = world.query_filtered::<(&Camera, &Transform), (With<Camera2d>, With<EditorCamera>)>();
+    let mut tilemap_q = world.query_filtered::<(&GlobalTransform, &TilemapSize, &TilemapGridSize, &TilemapTileSize, &TileStorage), With<TilemapGridSize>>();
+    let pointer_pos = match pos {
+        Some(x) if ui.ui_contains_pointer() => x,
+        _ => return,
+    };
+
+    let (camera, camera_transform) = pan_cam_q.single(world);
+    let (
+        tilemap_transform,
+        tilemap_size,
+        tilemap_grid_size,
+        tilemap_tile_size,
+        tile_storage,
+    ) = match tilemap_q.get(world, tilemap_entity) {
+        Ok(x) => x,
+        Err(_) => panic!("AMOGUS"),
+    };
+    let view = tilepainting_view(
+        viewport_rect,
+        pointer_pos,
+        camera,
+        &(GlobalTransform::IDENTITY * (*camera_transform)),
+        tilemap_transform,
+        tilemap_size,
+        tilemap_grid_size,
+        tilemap_tile_size,
+    );
+
+    painter.rect_stroke(
+        view.tilemap_bounds,
+        0.0,
+        egui::Stroke::new(4.0, egui::Color32::RED),
+    );
+    match view.cursor_info {
+        CursorInfo::OutofBounds => (),
+        CursorInfo::OnMap { tile_id, display_rect } => {
+            painter.rect_filled(
+                display_rect,
+                0.0,
+                egui::Color32::RED,
+            );
+
+            if ui.input(|x| x.key_down(egui::Key::T)) {
+                let tile = tile_storage.get(&tile_id).unwrap();
+                let mut tex_index = world.query::<&mut TileTextureIndex>()
+                    .get_mut(world, tile)
+                    .unwrap();
+                *tex_index = current_tile;
+            }
+        },
+    }
 }
 
 impl EditorWindow for TilemapEditorWindow {
     type State = TilemapEditorState;
     const NAME: &'static str = "Tilemap editor";
 
-    fn ui(world: &mut World, cx: EditorWindowContext, ui: &mut egui::Ui) {
+    fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
+        let TilemapEditorState {
+            kind,
+            mirror_flags,
+            color,
+        } = *cx.state::<Self>().unwrap();
 
+        match kind {
+            TilemapEditorStateKind::PickingTilemap => {
+                let pick = world.query_filtered::<Entity, With<TilemapSize>>()
+                    .iter_manual(world)
+                    .find(|_| ui.button("Tilemap").clicked());
+
+                if let Some(tilemap) = pick {
+                    *cx.state_mut::<Self>().unwrap() = TilemapEditorState {
+                        kind: TilemapEditorStateKind::EditingTilemap {
+                            tilemap_entity: tilemap,
+                            current_tile: TileTextureIndex(1),
+                        },
+                        mirror_flags,
+                        color,
+                    };
+                }
+            },
+            TilemapEditorStateKind::EditingTilemap { tilemap_entity, .. } => {
+                if ui.button("Exit").clicked() {
+                    *cx.state_mut::<Self>().unwrap() = TilemapEditorState {
+                        kind: TilemapEditorStateKind::PickingTilemap,
+                        mirror_flags,
+                        color,
+                    }
+                }
+
+                let texture = world.query::<&TilemapTexture>()
+                    .get(world, tilemap_entity)
+                    .unwrap()
+                    .clone();
+                let (texture_id, texture_size) = match texture {
+                    TilemapTexture::Single(x) => {
+                        let mut res = world.resource_mut::<EguiUserTextures>();
+                        let id = res.add_image(x.clone());
+                        let size = world.resource::<Assets<Image>>()
+                            .get(&x)
+                            .unwrap()
+                            .size();
+                        (id, size)
+                    },
+                    _ => todo!(),
+                };
+
+                egui::ScrollArea::both()
+                .always_show_scroll(true)
+                .max_height(200.0)
+                .max_width(200.0)
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    ui.image(
+                        texture_id,
+                        egui::vec2(texture_size.x, texture_size.y),
+                    );
+                });
+            }
+        }
     }
 
     fn viewport_ui(world: &mut World, cx: EditorWindowContext, ui: &mut egui::Ui) {
-        let rect = ui.clip_rect();
+        let state = cx.state::<Self>().unwrap();
 
-        let painter = ui.painter_at(rect);
-        let pos = ui.input(|x| x.pointer.hover_pos());
-
-        let mut pan_cam_q = world.query_filtered::<(&Camera, &Transform), (With<Camera2d>, With<EditorCamera>)>();
-        let mut tilemap_q = world.query_filtered::<&GlobalTransform, With<TilemapGridSize>>();
-
-        if let Some(p) = pos {
-            if !rect.contains(p) {
-                return;
-            }
-
-            let (cam, cam_tf) = pan_cam_q.single(world);
-            let tilemap_tf = tilemap_q.single(world);
-            let tilemap_pos = tilemap_tf.translation() - Vec3::new(8.0, 8.0, 0.0);
-            let tilemap_ref = tilemap_tf.translation() + Vec3::new(8.0, 8.0, 0.0);
-
-            // determine the pos AFTER the controls system has ran
-            let pos = match cam.world_to_viewport(&GlobalTransform::IDENTITY.mul_transform(*cam_tf), tilemap_pos) {
-                Some(x) => x,
-                None => return,
-            };
-            let refr = match cam.world_to_viewport(&GlobalTransform::IDENTITY.mul_transform(*cam_tf), tilemap_ref) {
-                Some(x) => x,
-                None => return,
-            };
-            let ref_rect =  egui::Rect {
-                min: egui::pos2(pos.x, rect.size().y - refr.y) + rect.min.to_vec2(),
-                max: egui::pos2(refr.x, rect.size().y - pos.y) + rect.min.to_vec2(),
-            };
-            let scaled_size = ref_rect.size();
-
-            let mouse_rel_pos = p - ref_rect.min;
-            let grid_cell = egui::pos2(
-                (mouse_rel_pos.x / scaled_size.x).floor(),
-                (mouse_rel_pos.y / scaled_size.y).floor(),
-            );
-            let grid_cell_int = (
-                grid_cell.x as i64,
-                -(grid_cell.y as i64),
-            );
-            let rect_pos = egui::pos2(
-                scaled_size.x * grid_cell.x,
-                scaled_size.y * grid_cell.y,
-            ) + ref_rect.min.to_vec2();
-
-            painter.rect_filled(
-                egui::Rect::from_min_size(rect_pos, scaled_size),
-                0.0,
-                egui::Color32::RED,
-            );
-
-            if ui.input(|x| x.pointer.button_pressed(egui::PointerButton::Primary)) {
-                dbg!(grid_cell_int);
-            }
+        match state.kind {
+            TilemapEditorStateKind::PickingTilemap => (),
+            TilemapEditorStateKind::EditingTilemap { tilemap_entity, current_tile } => tilepainting_state(
+                tilemap_entity,
+                current_tile,
+                world,
+                ui,
+            ),
         }
     }
 }

@@ -138,6 +138,19 @@ fn tilepainting_state(
         _ => return,
     };
 
+
+    let (texture_id, texture_size) = match world.query::<&TilemapTexture>().get(world, tilemap_entity).expect("AMOGUS").clone() {
+        TilemapTexture::Single(x) => {
+            let mut res = world.resource_mut::<EguiUserTextures>();
+            let id = res.add_image(x.clone());
+            let size = world.resource::<Assets<Image>>()
+                .get(&x)
+                .unwrap()
+                .size();
+            (id, size)
+        },
+        _ => todo!(),
+    };
     let (camera, camera_transform) = pan_cam_q.single(world);
     let (
         tilemap_transform,
@@ -168,10 +181,33 @@ fn tilepainting_state(
     match view.cursor_info {
         CursorInfo::OutofBounds => (),
         CursorInfo::OnMap { tile_id, display_rect } => {
-            painter.rect_filled(
+            let (tile_x, tile_y) = (
+                current_tile.0 % ((texture_size.x / tilemap_tile_size.x) as u32),
+                current_tile.0 / ((texture_size.x / tilemap_tile_size.x) as u32),
+            );
+            let (tile_x, tile_y) = (
+                tile_x as f32 * tilemap_tile_size.x,
+                tile_y as f32 * tilemap_tile_size.y,
+            );
+            painter.image(
+                texture_id,
+                display_rect,
+                egui::Rect {
+                    min: egui::pos2(
+                        tile_x / texture_size.x,
+                        tile_y / texture_size.y,
+                    ),
+                    max: egui::pos2(
+                        (tile_x + tilemap_tile_size.x) / texture_size.x,
+                        (tile_y + tilemap_tile_size.y) / texture_size.y,
+                    ),
+                },
+                egui::Color32::WHITE,
+            );
+            painter.rect_stroke(
                 display_rect,
                 0.0,
-                egui::Color32::RED,
+                egui::Stroke::new(1.0, egui::Color32::RED)
             );
 
             if ui.input(|x| x.key_down(egui::Key::T)) {

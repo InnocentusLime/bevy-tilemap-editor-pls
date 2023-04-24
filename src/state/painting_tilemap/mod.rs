@@ -188,7 +188,20 @@ impl StateData {
                         *color = self.tile_color;
                         *flip = self.tile_mirror_flags;
                     },
-                    None => todo!("Spawn tile"),
+                    None => {
+                        let tile_entity = world.spawn(TileBundle {
+                            position: hovered_tile.into(),
+                            texture_index: self.selected_tile,
+                            tilemap_id: TilemapId(self.tilemap_entity),
+                            flip: self.tile_mirror_flags,
+                            color: self.tile_color,
+                            ..default()
+                        }).id();
+                        world.query::<&mut TileStorage>()
+                            .get_mut(world, self.tilemap_entity)
+                            .expect("Tilemap has no storage")
+                            .set(&hovered_tile.into(), tile_entity);
+                    },
                 }
             }
         }

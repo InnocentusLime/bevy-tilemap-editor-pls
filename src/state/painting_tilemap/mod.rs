@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::{egui, default_windows::cameras::EditorCamera};
+use bevy_editor_pls::{egui_dock, egui, default_windows::cameras::EditorCamera};
 use bevy_egui::EguiUserTextures;
 
 use crate::{bevy_to_egui, gridify_int};
@@ -11,7 +11,7 @@ mod palette;
 mod queries;
 
 use palette::TilePalette;
-use queries::{ TilemapCameraQuery, TilemapQuery, TilemapQueryItem };
+use queries::{ TilemapCameraQuery, TilemapQuery };
 
 pub(super) struct StateData {
     // editor state stuff
@@ -127,7 +127,13 @@ impl StateData {
         // FIXME for some calls this rect should be reduced,
         // because our UI overlaps the viewport toolbar.
         let viewport_rect = ui.clip_rect();
-        let painter = ui.painter();
+        let mut clip_rect = viewport_rect;
+        clip_rect.set_top(
+            ui.min_rect().top() -
+            egui_dock::Style::default().default_inner_margin.top
+        );
+        let mut painter = ui.painter_at(clip_rect);
+        painter.set_layer_id(egui::LayerId::background());
 
         // Fetch information about the tilemap and the cursor
         let mut cam_q = world.query_filtered::<TilemapCameraQuery, (With<EditorCamera>, With<Camera2d>)>();
@@ -155,14 +161,14 @@ impl StateData {
         // Paint a frame and a tile at the place where the pointer is
         let hovered_tile = ui.input(|x| x.pointer.hover_pos())
             .and_then(|p| Self::global_pos_to_local(p, tilemap_rect))
-            .map(|p| gridify_int(p, grid_sample_rect.size()));
+            .map(|p| gridify_int(p, grid_sample_rect.size()))
+            .filter(|_| ui.ui_contains_pointer());
         if let Some(hovered_tile) = hovered_tile {
+            let info = tilemap.picked_tile_info(self.selected_tile.0, world);
             self.paint_tile_pointer(
-                painter,
-                world,
-                &tilemap,
+                &painter,
                 grid_sample_rect,
-                self.selected_tile.0,
+                info,
                 hovered_tile,
             );
 
@@ -193,13 +199,10 @@ impl StateData {
     fn paint_tile_pointer(
         &self,
         painter: &egui::Painter,
-        world: &World,
-        tilemap: &TilemapQueryItem,
         grid_sample_rect: egui::Rect,
-        tile_id: u32,
+        info: egui::Rect,
         tile_pos: UVec2,
     ) {
-        let info = tilemap.picked_tile_info(tile_id, world);
         let display_rect = Self::selected_tile_rect(tile_pos, grid_sample_rect);
 
         painter.image(

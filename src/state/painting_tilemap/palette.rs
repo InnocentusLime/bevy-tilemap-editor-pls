@@ -105,7 +105,8 @@ impl<'a> egui::Widget for TilePalette<'a> {
         let hovered_tile_id = ui.input(|x| x.pointer.hover_pos())
             .map(|p| Self::global_coords_to_local(p, &palette_response))
             .map(|p| gridify_int(p, self.tile_size))
-            .and_then(|p| int_tile_pos_to_id(p, self.palette_size_in_tiles()));
+            .and_then(|p| int_tile_pos_to_id(p, self.palette_size_in_tiles()))
+            .filter(|_| ui.rect_contains_pointer(palette_response.inner_rect));
         if let Some(hovered_tile_id) = hovered_tile_id {
             self.paint_tile_picker(
                 &palette_response,

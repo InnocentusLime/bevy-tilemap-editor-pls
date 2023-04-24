@@ -97,8 +97,8 @@ impl StateData {
 
         ui.separator();
 
-        ui.checkbox(&mut self.tile_mirror_flags.x, "Horizontal flip");
-        ui.checkbox(&mut self.tile_mirror_flags.y, "Vertical flip");
+        ui.checkbox(&mut self.tile_mirror_flags.y, "Horizontal flip");
+        ui.checkbox(&mut self.tile_mirror_flags.x, "Vertical flip");
         ui.checkbox(&mut self.tile_mirror_flags.d, "Diagonal flip");
 
         let mut tile_rgba = self.tile_color.0.as_rgba_f32();
@@ -108,10 +108,10 @@ impl StateData {
         // TODO hotkey for rotation
         // TODO make the keys configurable
         if ui.input(|x| x.key_pressed(egui::Key::H)) {
-            self.tile_mirror_flags.x = !self.tile_mirror_flags.x;
+            self.tile_mirror_flags.x = !self.tile_mirror_flags.y;
         }
         if ui.input(|x| x.key_pressed(egui::Key::V)) {
-            self.tile_mirror_flags.y = !self.tile_mirror_flags.y;
+            self.tile_mirror_flags.y = !self.tile_mirror_flags.x;
         }
         if ui.input(|x| x.key_pressed(egui::Key::D)) {
             self.tile_mirror_flags.d = !self.tile_mirror_flags.d;
@@ -209,6 +209,27 @@ impl StateData {
         Message::None
     }
 
+    fn apply_flip_flags(
+        &self,
+        mut uv: egui::Rect,
+    ) -> egui::Rect {
+        // According to bevy_ecs_tilemap's shader, the flipping is applied as
+        // in this order: d y x
+        if self.tile_mirror_flags.d {
+            std::mem::swap(&mut uv.min, &mut uv.max);
+        }
+
+        if self.tile_mirror_flags.y {
+            std::mem::swap(&mut uv.min.x, &mut uv.max.x);
+        }
+
+        if self.tile_mirror_flags.x {
+            std::mem::swap(&mut uv.min.y, &mut uv.max.y);
+        }
+
+        uv
+    }
+
     fn paint_tile_pointer(
         &self,
         painter: &egui::Painter,
@@ -216,13 +237,19 @@ impl StateData {
         info: egui::Rect,
         tile_pos: UVec2,
     ) {
+        let [r, g, b, a] = self.tile_color.0.as_rgba_f32();
         let display_rect = Self::selected_tile_rect(tile_pos, grid_sample_rect);
 
         painter.image(
             self.tilemap_texture_egui,
             display_rect,
-            info,
-            egui::Color32::WHITE,
+            self.apply_flip_flags(info),
+            egui::Color32::from_rgba_unmultiplied(
+                (r * 255.0) as u8,
+                (g * 255.0) as u8,
+                (b * 255.0) as u8,
+                (a * 255.0) as u8,
+            ),
         );
         painter.rect_stroke(
             display_rect,

@@ -124,8 +124,6 @@ impl StateData {
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
-        // FIXME for some calls this rect should be reduced,
-        // because our UI overlaps the viewport toolbar.
         let viewport_rect = ui.clip_rect();
         let mut clip_rect = viewport_rect;
         clip_rect.set_top(

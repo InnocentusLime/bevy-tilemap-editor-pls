@@ -86,6 +86,8 @@ impl StateData {
             return Message::ExitTilemapEditing;
         }
 
+        ui.separator();
+
         ui.add(TilePalette::new(
             &mut self.selected_tile.0,
             bevy_to_egui(atlas_size),

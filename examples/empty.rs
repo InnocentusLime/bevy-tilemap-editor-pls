@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::EditorPlugin;
+use bevy_editor_pls::{EditorPlugin, default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera}};
 use bevy_tilemap_editor_pls::TilemapEditorPlugin;
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    //commands.spawn(Camera2dBundle::default());
+fn startup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut controls: Query<&mut PanCamControls, With<EditorCamera>>,
+) {
+    controls.single_mut().grab_buttons = vec![MouseButton::Middle];
 
     let texture_handle: Handle<Image> = asset_server.load("tiles.png");
 

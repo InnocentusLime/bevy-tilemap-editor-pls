@@ -114,7 +114,7 @@ impl<'a> egui::Widget for TilePalette<'a> {
                 hovered_tile_id,
             );
 
-            if ui.input(|x| x.key_pressed(egui::Key::P)) {
+            if ui.input(|x| x.pointer.button_clicked(egui::PointerButton::Primary)) {
                 *self.selected_tile = hovered_tile_id;
             }
         }

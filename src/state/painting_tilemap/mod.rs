@@ -172,7 +172,7 @@ impl StateData {
                 hovered_tile,
             );
 
-            if ui.input(|x| x.key_pressed(egui::Key::T)) {
+            if ui.input(|x| x.pointer.button_down(egui::PointerButton::Primary)) {
                 let get_res = world.query::<&TileStorage>()
                     .get_mut(world, self.tilemap_entity)
                     .expect("Tilemap has no storage")

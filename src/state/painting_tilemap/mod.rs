@@ -165,7 +165,7 @@ impl StateData {
             .filter(|_| ui.ui_contains_pointer());
         if let Some(hovered_tile) = hovered_tile {
             let info = tilemap.picked_tile_info(self.selected_tile.0, world);
-            self.paint_tile_pointer(
+            self.paint_tile_brush(
                 &painter,
                 grid_sample_rect,
                 info,
@@ -209,48 +209,19 @@ impl StateData {
         Message::None
     }
 
-    fn apply_flip_flags(
-        &self,
-        mut uv: egui::Rect,
-    ) -> egui::Rect {
-        // According to bevy_ecs_tilemap's shader, the flipping is applied as
-        // in this order: d y x
-        if self.tile_mirror_flags.d {
-            // TODO
-        }
-
-        if self.tile_mirror_flags.x {
-            std::mem::swap(&mut uv.min.x, &mut uv.max.x);
-        }
-
-        if self.tile_mirror_flags.y {
-            std::mem::swap(&mut uv.min.y, &mut uv.max.y);
-        }
-
-        uv
-    }
-
-    fn paint_tile_pointer(
+    fn paint_tile_brush(
         &self,
         painter: &egui::Painter,
         grid_sample_rect: egui::Rect,
         info: egui::Rect,
         tile_pos: UVec2,
     ) {
-        let [r, g, b, a] = self.tile_color.0.as_rgba_f32();
         let display_rect = Self::selected_tile_rect(tile_pos, grid_sample_rect);
 
-        painter.image(
-            self.tilemap_texture_egui,
+        painter.add(self.brush_mesh(
             display_rect,
-            self.apply_flip_flags(info),
-            egui::Color32::from_rgba_unmultiplied(
-                (r * 255.0) as u8,
-                (g * 255.0) as u8,
-                (b * 255.0) as u8,
-                (a * 255.0) as u8,
-            ),
-        );
+            info,
+        ));
         painter.rect_stroke(
             display_rect,
             0.0,
@@ -270,6 +241,83 @@ impl StateData {
             tile.x as f32 * size.x,
             -(tile.y as f32) * size.y,
         ))
+    }
+
+    fn brush_mesh(
+        &self,
+        rect: egui::Rect,
+        uv: egui::Rect,
+    ) -> egui::Shape {
+        let [r, g, b, a] = self.tile_color.0.as_rgba_f32();
+        let color = egui::Color32::from_rgba_unmultiplied(
+            (r * 255.0) as u8,
+            (g * 255.0) as u8,
+            (b * 255.0) as u8,
+            (a * 255.0) as u8,
+        );
+        let mut mesh = egui::Mesh::with_texture(self.tilemap_texture_egui);
+
+        mesh.indices.extend([
+            0, 1, 2,
+            0, 2, 3,
+        ]);
+        mesh.vertices.extend([
+            egui::epaint::Vertex {
+                color,
+                pos: rect.left_top(),
+                uv: uv.left_top(),
+            },
+            egui::epaint::Vertex {
+                color,
+                pos: rect.right_top(),
+                uv: uv.right_top(),
+            },
+            egui::epaint::Vertex {
+                color,
+                pos: rect.right_bottom(),
+                uv: uv.right_bottom(),
+            },
+            egui::epaint::Vertex {
+                color,
+                pos: rect.left_bottom(),
+                uv: uv.left_bottom(),
+            },
+        ]);
+
+
+        let trans = rect.center().to_vec2();
+
+        // Undo translate
+        mesh.translate(-trans);
+
+        if self.tile_mirror_flags.d {
+            mesh.rotate(
+                egui::emath::Rot2::from_angle(std::f32::consts::FRAC_PI_2),
+                egui::Pos2::ZERO,
+            )
+        }
+
+        // Combine x and y flips into negative scaling
+        let mut scale = egui::vec2(
+            1.0 - 2.0 * self.tile_mirror_flags.x as u8 as f32,
+            1.0 - 2.0 * self.tile_mirror_flags.y as u8 as f32,
+        );
+
+        // multiply that scale by d
+        if self.tile_mirror_flags.d {
+            scale.x *= -1.0;
+        }
+
+        // Apply the scale
+        mesh.vertices.iter_mut().for_each(|v| v.pos = egui::pos2(
+            scale.x * v.pos.x,
+            scale.y * v.pos.y,
+        ));
+
+        // Reapply translate
+        mesh.translate(trans);
+
+        egui::Shape::mesh(mesh)
     }
 
     // The y component is computed differently, so the higher you go,

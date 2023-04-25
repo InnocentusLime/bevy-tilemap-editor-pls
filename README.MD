@@ -1,6 +1,6 @@
 # What is this
 
-This is a simple tilemap editor plugin, that hooks right into `bevy_editor_pls` to work with `bevy_ecs_tilemap`. It works completely within its own confines and doesn't spawn any additional entities or resources. The current aim is to provide a good enough editor to do most of the level editing tasks right inside the bevy application.
+This is a simple tilemap editor plugin, that hooks right into `bevy_editor_pls` to work with `bevy_ecs_tilemap`. It works completely within its own confines and doesn't spawn any additional entities. The current aim is to provide a good enough editor to do most of the level editing tasks right inside the bevy application.
 
 To use this plugin just add it to your app:
 

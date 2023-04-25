@@ -87,7 +87,7 @@ impl<'a> egui::Widget for TilePalette<'a> {
             .show(ui, |ui| {
                 ui.image(self.palette_texture, self.palette_size)
             });
-        let painter = ui.painter();
+        let painter = ui.painter_at(palette_response.inner_rect);
 
         // Force the picked tile to zero if its out of range
         if !self.tile_in_bounds() {
@@ -97,7 +97,7 @@ impl<'a> egui::Widget for TilePalette<'a> {
         // The frame around the selected tile
         self.paint_tile_picker(
             &palette_response,
-            painter,
+            &painter,
             *self.selected_tile,
         );
 
@@ -107,11 +107,11 @@ impl<'a> egui::Widget for TilePalette<'a> {
             .map(|p| gridify_int(p, self.tile_size))
             .and_then(|p| int_tile_pos_to_id(p, self.palette_size_in_tiles()))
             .filter(|_| ui.rect_contains_pointer(palette_response.inner_rect));
-        // FIXME fix the clippping
+
         if let Some(hovered_tile_id) = hovered_tile_id {
             self.paint_tile_picker(
                 &palette_response,
-                painter,
+                &painter,
                 hovered_tile_id,
             );
 

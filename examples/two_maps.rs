@@ -41,7 +41,7 @@ fn startup(
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugin(TilemapPlugin)
         .add_plugin(EditorPlugin::default())
         .add_plugin(TilemapEditorPlugin)

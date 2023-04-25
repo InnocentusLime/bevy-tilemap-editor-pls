@@ -18,15 +18,25 @@ fn startup(
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 
-    commands.spawn(TilemapBundle {
+    commands.spawn((TilemapBundle {
         grid_size,
         map_type,
         size: map_size,
         storage: TileStorage::empty(map_size),
-        texture: TilemapTexture::Single(texture_handle),
+        texture: TilemapTexture::Single(texture_handle.clone()),
         tile_size,
         ..Default::default()
-    });
+    }, Name::new("Background layer")));
+
+    commands.spawn((TilemapBundle {
+        grid_size,
+        map_type,
+        size: map_size,
+        storage: TileStorage::empty(map_size),
+        texture: TilemapTexture::Single(texture_handle.clone()),
+        tile_size,
+        ..Default::default()
+    }, Name::new("Foreground layer")));
 }
 
 fn main() {

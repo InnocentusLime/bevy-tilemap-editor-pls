@@ -36,6 +36,11 @@ impl StateData {
             .find(|(_, name)| ui.button(self.name_tilemap(*name)).clicked());
 
         if let Some((tilemap, _)) = pick {
+            match world.query::<&TilemapType>().get(world, tilemap).unwrap() {
+                TilemapType::Square => (),
+                _ => panic!("Tilemaps other than square tilemaps aren't supported."),
+            }
+
             return Message::EditTilemap(tilemap)
         }
 

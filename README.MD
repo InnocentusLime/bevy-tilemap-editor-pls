@@ -46,6 +46,7 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - Showing-hiding a whole tilemap in the editor
 - Taking tilemap scaling into account
 - A thin grid to make it easier to measure space in a tilemap
+- Rotating tiles
 
 ## Could-haves
 

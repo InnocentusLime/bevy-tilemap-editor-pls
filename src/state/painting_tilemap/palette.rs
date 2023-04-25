@@ -107,6 +107,7 @@ impl<'a> egui::Widget for TilePalette<'a> {
             .map(|p| gridify_int(p, self.tile_size))
             .and_then(|p| int_tile_pos_to_id(p, self.palette_size_in_tiles()))
             .filter(|_| ui.rect_contains_pointer(palette_response.inner_rect));
+        // FIXME fix the clippping
         if let Some(hovered_tile_id) = hovered_tile_id {
             self.paint_tile_picker(
                 &palette_response,

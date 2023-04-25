@@ -10,9 +10,9 @@ fn startup(
 ) {
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
 
-    let texture_handle: Handle<Image> = asset_server.load("tiles.png");
+    let texture_handle: Handle<Image> = asset_server.load("pretty_tiles.png");
 
-    let map_size = TilemapSize { x: 32, y: 32 };
+    let map_size = TilemapSize { x: 64, y: 64 };
 
     // Create a tilemap entity a little early.
     // We want this entity early because we need to tell each tile which tilemap entity
@@ -21,7 +21,7 @@ fn startup(
     // will contain various necessary components, such as `TileStorage`.
     let tilemap_entity = commands.spawn_empty().id();
     let tile_storage = TileStorage::empty(map_size);
-    let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
+    let tile_size = TilemapTileSize { x: 32.0, y: 32.0 };
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 

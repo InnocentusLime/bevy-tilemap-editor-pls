@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use bevy_editor_pls::egui;
 use bevy_ecs_tilemap::prelude::*;
 
-use crate::{tile_id_to_pos, bevy_to_egui};
-
 #[derive(bevy::ecs::query::WorldQuery)]
 pub struct TilemapQuery {
     texture: &'static TilemapTexture,
@@ -11,34 +9,6 @@ pub struct TilemapQuery {
     tile_size: &'static TilemapTileSize,
     size: &'static TilemapSize,
     transform: &'static GlobalTransform,
-}
-
-impl<'a> TilemapQueryItem<'a> {
-    // Current merely returns a uv rect, but this will be
-    // different for different texture types.
-    pub fn picked_tile_info(
-        &self,
-        id: u32,
-        world: &World,
-    ) -> egui::Rect {
-        match &self.texture {
-            TilemapTexture::Single(x) => {
-                let tile_size = bevy_to_egui(self.tile_size.into());
-                let atlas_size = world.resource::<Assets<Image>>().get(x)
-                    .expect("Bad image handle")
-                    .size();
-                let pos = tile_id_to_pos(id, bevy_to_egui(atlas_size), tile_size);
-                let uv = egui::Rect::from_min_size(pos, tile_size);
-
-                egui::Rect {
-                    min: egui::pos2(uv.min.x / atlas_size.x, uv.min.y / atlas_size.y),
-                    max: egui::pos2(uv.max.x / atlas_size.x, uv.max.y / atlas_size.y),
-                }
-            },
-            TilemapTexture::Vector(_) => todo!(),
-            TilemapTexture::TextureContainer(_) => todo!(),
-        }
-    }
 }
 
 #[derive(Debug)]

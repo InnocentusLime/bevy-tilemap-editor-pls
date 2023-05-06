@@ -9,13 +9,13 @@ fn flip_flags_to_rotation(
     // d x y
     let table = [
         /* 0 DXY */ "No transform",
-        /* 1 dXY */ "Rotated -90 degrees + flipped horizontally",
+        /* 1 dXY */ "Rotated -90°, then flipped horizontally",
         /* 2 DxY */ "Flipped horizontally",
-        /* 3 dxY */ "Rotated -90 degrees",
+        /* 3 dxY */ "Rotated -90°",
         /* 4 DXy */ "Flipped vertically",
-        /* 5 dXy */ "Rotated 90 degrees",
-        /* 6 Dxy */ "Rotated 180 degrees",
-        /* 7 dxy */ "Rotated 90 degrees + flipped horizontally",
+        /* 5 dXy */ "Rotated 90°",
+        /* 6 Dxy */ "Rotated 180°",
+        /* 7 dxy */ "Rotated 90°, then flipped horizontally",
     ];
 
     table[
@@ -70,7 +70,7 @@ impl Tool for TileWhoIs {
                 props.flip.y as u8,
             ));
             ui.label(format!(
-                "Simpler transformation description:\n {}",
+                "Transform:\n {}",
                 flip_flags_to_rotation(props.flip),
             ));
         }

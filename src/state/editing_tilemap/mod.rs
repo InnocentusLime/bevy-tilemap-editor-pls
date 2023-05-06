@@ -242,11 +242,11 @@ impl StateData {
         ui.checkbox(&mut self.palette_state.flip.y, "Vertical flip");
 
         ui.horizontal(|ui| {
-            if ui.button("+90").clicked() {
+            if ui.button("+90°").clicked() {
                 flip_rotation::rotate_plus_90(&mut self.palette_state.flip);
             }
 
-            if ui.button("-90").clicked() {
+            if ui.button("-90°").clicked() {
                 flip_rotation::rotate_minus_90(&mut self.palette_state.flip);
             }
         });

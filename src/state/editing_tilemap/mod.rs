@@ -34,6 +34,106 @@ fn global_pos_to_local(
     Some(pos)
 }
 
+mod flip_rotation {
+    use bevy_ecs_tilemap::tiles::TileFlip;
+
+    /*
+        There are exactly two sequences created by rotating a tile
+
+        =====  =====
+        seq 1  seq 2
+        =====  =====
+        d x y  d x y
+        0 0 0  1 1 1
+        1 0 1  0 1 0
+        0 1 1  1 0 0
+        1 1 0  0 0 1
+
+        Rotating by +90 goes cycles down and -90 cycles up. Until wrapping around,
+        the flags work like a cyclic shift -- both do a cyclic shift to the left.
+
+        The second sequence is a complement of the first one.
+
+        The first sequence always has an even amount of bits in it, while the second
+        one always has an odd number of bits in it.
+
+        If we re-order the columns, the sequences get simpler
+
+        =====  =====
+        seq 1  seq 2
+        =====  =====
+        x d y  x d y
+        0 0 0  1 1 1
+        0 1 1  1 0 0
+        1 0 1  0 1 0
+        1 1 0  0 0 1
+
+        This reveals that we can greatly simplify everything by doing the
+        calculations in for seq 2 and then inverting it when needed
+    */
+
+    // Conveniently places the flip bits into u8 like this:
+    // 0 x d y 0 0 0
+    #[inline]
+    fn flip_to_internal(flip: TileFlip) -> u8 {
+        (flip.x as u8) << 3 |
+        (flip.d as u8) << 2 |
+        (flip.y as u8) << 1
+    }
+
+    #[inline]
+    fn internal_to_flip(x: u8, flip: &mut TileFlip) {
+        flip.x = (x & 0b100_0) == 0b100_0;
+        flip.d = (x & 0b010_0) == 0b010_0;
+        flip.y = (x & 0b001_0) == 0b001_0;
+    }
+
+    // Special mask that helps us flip bits based up the evenness of bit
+    // count.
+    #[inline]
+    fn flip_mask(x: u8) -> u8 {
+        if x.count_ones() % 2 == 0 {
+            0b111_0
+        } else {
+            0b000_0
+        }
+    }
+
+    #[inline]
+    fn seq_lshift(x: u8) -> u8 {
+        let shifted = x << 1;
+
+        if x == 0b111_0 { 0b001_0 }
+        else if shifted & 0b1_000_0 == 0b1_000_0 { 0b111_0 }
+        else { shifted }
+    }
+
+    #[inline]
+    fn seq_rshift(x: u8) -> u8 {
+        let shifted = x >> 1;
+
+        if x == 0b111_0 { 0b100_0 }
+        else if shifted & 0b000_1 == 0b000_1 { 0b111_0 }
+        else { shifted }
+    }
+
+    pub fn rotate_plus_90(flip: &mut TileFlip) {
+        let x = flip_to_internal(*flip);
+        let mask = flip_mask(x);
+        let y = seq_rshift(x ^ mask) ^ mask;
+
+        internal_to_flip(y, flip);
+    }
+
+    pub fn rotate_minus_90(flip: &mut TileFlip) {
+        let x = flip_to_internal(*flip);
+        let mask = flip_mask(x);
+        let y = seq_lshift(x ^ mask) ^ mask;
+
+        internal_to_flip(y, flip);
+    }
+}
+
 pub(super) struct StateData {
     // editor state stuff
     tools: [Box<dyn Tool>; 4],
@@ -141,6 +241,16 @@ impl StateData {
         ui.checkbox(&mut self.palette_state.flip.x, "Horizontal flip");
         ui.checkbox(&mut self.palette_state.flip.y, "Vertical flip");
 
+        ui.horizontal(|ui| {
+            if ui.button("+90").clicked() {
+                flip_rotation::rotate_plus_90(&mut self.palette_state.flip);
+            }
+
+            if ui.button("-90").clicked() {
+                flip_rotation::rotate_minus_90(&mut self.palette_state.flip);
+            }
+        });
+
         let mut tile_rgba = self.palette_state.color.0.as_rgba_f32();
         ui.color_edit_button_rgba_unmultiplied(&mut tile_rgba);
         self.palette_state.color.0 = Color::rgba(
@@ -150,7 +260,6 @@ impl StateData {
             tile_rgba[3],
         );
 
-        // TODO hotkey for rotation
         // TODO make the keys configurable
         if ui.input(|x| x.key_pressed(egui::Key::H)) {
             self.palette_state.flip.x = !self.palette_state.flip.x;
@@ -160,6 +269,13 @@ impl StateData {
         }
         if ui.input(|x| x.key_pressed(egui::Key::D)) {
             self.palette_state.flip.d = !self.palette_state.flip.d;
+        }
+        if ui.input(|x| x.key_pressed(egui::Key::R)) {
+            if ui.input(|x| x.modifiers.shift) {
+                flip_rotation::rotate_plus_90(&mut self.palette_state.flip);
+            } else {
+                flip_rotation::rotate_minus_90(&mut self.palette_state.flip);
+            }
         }
 
         Message::None

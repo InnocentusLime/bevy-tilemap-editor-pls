@@ -58,16 +58,16 @@ impl Tool for TileWhoIs {
                 ent.index(),
             ));
             ui.label(format!(
+                "Diagonal flip: {}",
+                props.flip.d as u8,
+            ));
+            ui.label(format!(
                 "Horizontal flip: {}",
                 props.flip.x as u8,
             ));
             ui.label(format!(
                 "Vertical flip: {}",
-                props.flip.x as u8,
-            ));
-            ui.label(format!(
-                "Diagonal flip: {}",
-                props.flip.x as u8,
+                props.flip.y as u8,
             ));
             ui.label(format!(
                 "Simpler transformation description:\n {}",

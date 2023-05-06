@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_editor_pls::egui::Ui;
 
-mod painting_tilemap;
+mod editing_tilemap;
 mod picking_tilemap;
 
 enum Message {
@@ -15,7 +15,7 @@ struct SharedStateData {
 }
 
 enum State {
-    PaintingTilemap(painting_tilemap::StateData),
+    Editing(editing_tilemap::StateData),
     PickingTilemap(picking_tilemap::StateData),
 }
 
@@ -33,7 +33,7 @@ impl EditorState {
         let old = std::mem::replace(&mut self.state, state);
 
         match old {
-            State::PaintingTilemap(x) => x.cleanup(world),
+            State::Editing(x) => x.cleanup(world),
             State::PickingTilemap(x) => x.cleanup(world),
         }
     }
@@ -44,15 +44,15 @@ impl EditorState {
             Message::ExitTilemapEditing => self.state_switch(State::PickingTilemap(
                 picking_tilemap::StateData::new(world)
             ), world),
-            Message::EditTilemap(e) => self.state_switch(State::PaintingTilemap(
-                painting_tilemap::StateData::new(e, world)
+            Message::EditTilemap(e) => self.state_switch(State::Editing(
+                editing_tilemap::StateData::new(e, world)
             ), world),
         }
     }
 
     pub fn ui(&mut self, world: &mut World, ui: &mut Ui) {
         let msg = match &mut self.state {
-            State::PaintingTilemap(x) => x.ui(&mut self.shared, world, ui),
+            State::Editing(x) => x.ui(&mut self.shared, world, ui),
             State::PickingTilemap(x) => x.ui(&mut self.shared, world, ui),
         };
 
@@ -61,7 +61,7 @@ impl EditorState {
 
     pub fn viewport_ui(&mut self, world: &mut World, ui: &mut Ui) {
         let msg = match &mut self.state {
-            State::PaintingTilemap(x) => x.viewport_ui(&mut self.shared, world, ui),
+            State::Editing(x) => x.viewport_ui(&mut self.shared, world, ui),
             State::PickingTilemap(x) => x.viewport_ui(&mut self.shared, world, ui),
         };
 

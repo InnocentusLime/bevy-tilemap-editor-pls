@@ -30,11 +30,11 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 ## Must-haves
 
 - [x] Painting tiles
-- [ ] Erasing tiles
+- [x] Erasing tiles
 - [ ] Spawning tiles with a bundle
 - [ ] Overriding the tile components by painting
-- [ ] Picking the tile
-- [ ] Discovering tile entity ID by hovering over it
+- [x] Picking the tile
+- [x] Discovering tile entity ID by hovering over it
 
 ## Should-haves
 
@@ -47,6 +47,7 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - Taking tilemap scaling into account
 - A thin grid to make it easier to measure space in a tilemap
 - Rotating tiles
+- Custom tools
 
 ## Could-haves
 

@@ -137,9 +137,9 @@ impl StateData {
 
         ui.separator();
 
+        ui.checkbox(&mut self.palette_state.flip.d, "Diagonal flip");
         ui.checkbox(&mut self.palette_state.flip.x, "Horizontal flip");
         ui.checkbox(&mut self.palette_state.flip.y, "Vertical flip");
-        ui.checkbox(&mut self.palette_state.flip.d, "Diagonal flip");
 
         let mut tile_rgba = self.palette_state.color.0.as_rgba_f32();
         ui.color_edit_button_rgba_unmultiplied(&mut tile_rgba);

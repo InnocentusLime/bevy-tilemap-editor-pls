@@ -356,6 +356,7 @@ dependencies = [
  "bevy",
  "bevy_ecs_tilemap",
  "bevy_editor_pls",
+ "bevy_egui",
 ]
 
 [[package]]

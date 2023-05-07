@@ -6,7 +6,7 @@ mod tile_picker;
 use bevy::{prelude::*, ecs::query::WorldQuery};
 use bevy_editor_pls::egui::{self, Painter};
 
-use crate::tile_id_to_pos;
+use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
 
 use super::{*, queries::TilemapPoints};
 
@@ -94,6 +94,10 @@ impl<'w, 's> ToolContext<'w, 's> {
         pos: TilePos,
         props: TileProperties,
     ) {
+        let container = self.world.get_resource_or_insert_with(EditorTileDataRegistry::default)
+            .inner
+            .clone();
+        let container = container.lock().unwrap();
         let tile_entity = match self.get_tile(pos) {
             Some(x) => x,
             None => {
@@ -110,12 +114,32 @@ impl<'w, 's> ToolContext<'w, 's> {
                 tile_entity
             },
         };
+        let tilemap_texture = self.world.get::<TilemapTexture>(self.tilemap_entity)
+            .expect("Bad tilemap ID")
+            .clone();
         let mut props_item = self.query.get_mut(&mut self.world, tile_entity)
             .expect("Bad tile entity");
+        let old_tile_texture = *props_item.texture;
+        let new_tile_texture = props.texture;
 
         *props_item.color = props.color;
         *props_item.flip = props.flip;
         *props_item.texture = props.texture;
+
+        let mut tile_entity_mut = self.world.entity_mut(tile_entity);
+
+        if old_tile_texture.0 != new_tile_texture.0 {
+            container.remove(
+                &tilemap_texture,
+                &old_tile_texture,
+                &mut tile_entity_mut,
+            );
+        }
+        container.insert(
+            &tilemap_texture,
+            &new_tile_texture,
+            &mut tile_entity_mut,
+        );
     }
 
     pub fn get_tile_properties(

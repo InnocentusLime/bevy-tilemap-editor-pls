@@ -2,8 +2,10 @@ use bevy::prelude::*;
 use bevy_editor_pls::{editor_window::{EditorWindow, EditorWindowContext}, egui, AddEditorWindow};
 
 mod state;
+mod tile_data;
 
 pub use state::EditorState;
+pub use tile_data::EditorTileDataRegistry;
 
 pub fn gridify_pos(
     pos: egui::Pos2,

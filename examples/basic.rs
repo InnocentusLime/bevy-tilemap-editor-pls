@@ -48,7 +48,6 @@ fn startup(
     let map_type = TilemapType::default();
 
     commands.insert_resource(ClearColor(Color::BLACK));
-
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size,
         map_type,

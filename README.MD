@@ -31,8 +31,8 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 
 - [x] Painting tiles
 - [x] Erasing tiles
-- [ ] Spawning tiles with a bundle
-- [ ] Overriding the tile components by painting
+- [x] Spawning tiles with a bundle
+- [x] Overriding the tile components by painting
 - [x] Picking the tile
 - [x] Discovering tile entity ID by hovering over it
 

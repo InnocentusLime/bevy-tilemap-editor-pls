@@ -64,6 +64,10 @@ pub struct EditorTileDataRegistry {
 }
 
 impl EditorTileDataRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn register<B: Bundle + Clone>(
         &mut self,
         tileset_info: TilemapTexture,

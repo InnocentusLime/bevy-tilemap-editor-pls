@@ -31,7 +31,7 @@ fn startup(
     let map_size = TilemapSize { x: 32, y: 32 };
 
     // Setup custom data
-    let mut registry = EditorTileDataRegistry::default();
+    let mut registry = EditorTileDataRegistry::new();
     registry.register(
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(0),

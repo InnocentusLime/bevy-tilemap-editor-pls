@@ -12,6 +12,20 @@ Then you should see a `Tile editor` option in the `Open Window` menu in `bevy_ed
 
 It is STRONGLY recommended to change the camera panning controls in `bevy_editor_pls` to exclude both left and right mouse buttons, since those are used by the editor. In the examples you can see how to override the camera panning controls to mouse's middle button.
 
+In addition, if you have some additional components, that you attach to the tiles, you can configure a resource that tells the editor what components it should insert
+
+```rust
+    let mut registry = EditorTileDataRegistry::default();
+
+    registry.register(
+        TilemapTexture::Single(texture_handle),
+        TileTextureIndex(0),
+        (GrassHeight(10), GroundTag),
+    );
+
+    commands.insert_resource(registry);
+```
+
 # Why use this?
 
 * As of this writing, both `tiled` and `ldtk` aren't compatible with bevy without some tinkering.
@@ -24,6 +38,7 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - Currently, there's not "proper" layer support. `bevy_ecs_tilemap` allows emulating layers by spawning a separate tilemap for that. In other editors you can simply reorder the layers, which is easier-said-than-done when it comes to bevy, since all objects are z-coordinate ordered.
 - The plugin doesn't support tilemaps that have gone through `Transforms` other than mere translation.
 - Tile painting can spill out when your mouse button is still down.
+- This plugin relies on `bevy_editor_pls`, which is known to have some (performance issues)[https://github.com/jakobhellermann/bevy_editor_pls/issues/20].
 
 # Features
 
@@ -39,6 +54,7 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 ## Will implement in the nearest future
 
 - Support for other atlas formats
+- No reliance on `bevy_editor_pls`
 - Tilemap saving
 - Tilemap loading
 - Live tilemap resizing
@@ -54,6 +70,7 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - Configurable controls
 - Spawning a tilemap
 - Taking tilemap rotation into account
+- Compatability with prefab crates like `bevy_proto`
 
 ## Won't implement
 

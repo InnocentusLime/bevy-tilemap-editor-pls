@@ -38,7 +38,7 @@ In addition, if you have some additional components, that you attach to the tile
 - Currently, there's not "proper" layer support. `bevy_ecs_tilemap` allows emulating layers by spawning a separate tilemap for that. In other editors you can simply reorder the layers, which is easier-said-than-done when it comes to bevy, since all objects are z-coordinate ordered.
 - The plugin doesn't support tilemaps that have gone through `Transforms` other than mere translation.
 - Tile painting can spill out when your mouse button is still down.
-- This plugin relies on `bevy_editor_pls`, which is known to have some (performance issues)[https://github.com/jakobhellermann/bevy_editor_pls/issues/20].
+- This plugin relies on `bevy_editor_pls`, which is known to have some [performance issues](https://github.com/jakobhellermann/bevy_editor_pls/issues/20).
 
 # Features
 
@@ -60,7 +60,6 @@ In addition, if you have some additional components, that you attach to the tile
 - Showing-hiding a whole tilemap in the editor
 - Taking tilemap scaling into account
 - A thin grid to make it easier to measure space in a tilemap
-- Rotating tiles
 - Custom tools
 
 ## Will implement, but they aren't a high priority right now

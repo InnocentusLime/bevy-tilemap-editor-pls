@@ -25,18 +25,18 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - The plugin doesn't support tilemaps that have gone through `Transforms` other than mere translation.
 - Tile painting can spill out when your mouse button is still down.
 
-# Feature implementation prioroties
+# Features
 
-## Must-haves
+## Avaliable right now
 
-- [x] Painting tiles
-- [x] Erasing tiles
-- [x] Spawning tiles with a bundle
-- [x] Overriding the tile components by painting
-- [x] Picking the tile
-- [x] Discovering tile entity ID by hovering over it
+- Painting tiles
+- Erasing tiles
+- Spawning tiles with a bundle
+- Overriding the tile components by painting
+- Picking the tile
+- Discovering tile entity ID by hovering over it
 
-## Should-haves
+## Will implement in the nearest future
 
 - Support for other atlas formats
 - Tilemap saving
@@ -49,13 +49,13 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 - Rotating tiles
 - Custom tools
 
-## Could-haves
+## Will implement, but they aren't a high priority right now
 
 - Configurable controls
 - Spawning a tilemap
 - Taking tilemap rotation into account
 
-## Won't-haves
+## Won't implement
 
 - Editing for tilemaps other than square maps (this project already has a quite big scope. Adding suport for other tilemap types would slow things down)
 - Spawning non-tile entities (once again, it is out of the current scope I have set up and it's probably a task that shouldn't be done by this plugin)

@@ -323,25 +323,33 @@ impl StateData {
             egui::Stroke::new(2.0, egui::Color32::RED),
         );
 
-        // Paint a frame and a tile at the place where the pointer is
         let hovered_tile = ui.input(|x| x.pointer.hover_pos())
             .and_then(|p|global_pos_to_local(p, tilemap_rect))
             .map(|p| gridify_int(p, grid_sample_rect.size()))
             .filter(|_| ui.ui_contains_pointer());
 
-        if let Some(hovered_tile) = hovered_tile {
-            self.tools[self.current_tool].viewport_ui(
-                &mut ToolContext::new(
-                    world,
-                    ref_points,
-                    self.tilemap_entity,
-                    self.tilemap_texture_egui,
-                    &mut self.query,
-                    &mut self.palette_state,
-                ),
-                hovered_tile.into(),
-                ui,
-            );
+        ui.label(format!("Tool: {}", self.tools[self.current_tool].name()));
+
+        match hovered_tile {
+            Some(hovered_tile) => {
+                ui.label(format!("Pos: {} {}", hovered_tile.x, hovered_tile.y));
+
+                self.tools[self.current_tool].viewport_ui(
+                    &mut ToolContext::new(
+                        world,
+                        ref_points,
+                        self.tilemap_entity,
+                        self.tilemap_texture_egui,
+                        &mut self.query,
+                        &mut self.palette_state,
+                    ),
+                    hovered_tile.into(),
+                    ui,
+                );
+            },
+            None => {
+                ui.label("Pos: out of bounds");
+            },
         }
 
         Message::None

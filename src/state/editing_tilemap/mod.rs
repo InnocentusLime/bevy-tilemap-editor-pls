@@ -345,6 +345,7 @@ impl StateData {
                     ),
                     hovered_tile.into(),
                     ui,
+                    &painter,
                 );
             },
             None => {

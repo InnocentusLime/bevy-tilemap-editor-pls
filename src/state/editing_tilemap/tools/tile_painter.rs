@@ -16,8 +16,8 @@ impl Tool for TilePainter {
         ctx: &mut ToolContext,
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
+        painter: &Painter,
     ) {
-        let painter = ui.painter();
         let display_rect = ctx.tile_rect(hovered_tile);
         ctx.paint_tile(display_rect, painter);
         painter.rect_stroke(

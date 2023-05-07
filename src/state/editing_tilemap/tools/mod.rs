@@ -299,5 +299,6 @@ pub trait Tool: std::fmt::Debug + Send + Sync {
         ctx: &mut ToolContext,
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
+        painter: &Painter,
     );
 }

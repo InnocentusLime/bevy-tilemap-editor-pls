@@ -38,8 +38,8 @@ impl Tool for TileWhoIs {
         ctx: &mut ToolContext,
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
+        painter: &Painter,
     ) {
-        let painter = ui.painter();
         let display_rect = ctx.tile_rect(hovered_tile);
         painter.rect_stroke(
             display_rect,

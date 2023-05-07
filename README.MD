@@ -44,12 +44,10 @@ In addition, if you have some additional components, that you attach to the tile
 
 ## Avaliable right now
 
-- Painting tiles
+- Painting tiles (with extra data!)
 - Erasing tiles
-- Spawning tiles with a bundle
-- Overriding the tile components by painting
-- Picking the tile
-- Discovering tile entity ID by hovering over it
+- Tile picking
+- Quering tile entity ID
 
 ## Will implement in the nearest future
 

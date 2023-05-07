@@ -216,18 +216,16 @@ impl StateData {
 
         ui.separator();
 
-        let tool_choice = ui.horizontal(|ui| {
-            self.tools.iter().position(|tool| {
-                ui.button(tool.name()).clicked()
+       ui.horizontal(|ui| {
+            self.tools.iter().enumerate()
+            .for_each(|(id, tool)| {
+                ui.selectable_value(&mut self.current_tool, id, tool.name());
             })
         });
 
-        if let Some(tool) = tool_choice.inner {
-            self.current_tool = tool;
-        }
-
         ui.separator();
 
+        ui.label(format!("Tile texture ID: {}", self.palette_state.texture.0));
         ui.add(TilePalette::new(
             &mut self.palette_state.texture.0,
             bevy_to_egui(atlas_size),
@@ -287,8 +285,6 @@ impl StateData {
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
-        self.current_tool = self.current_tool.clamp(0, self.tools.len());
-
         // FIXME the clipping has been improved, but the frames
         // still paint themselves on top of other widgets
         let viewport_rect = ui.clip_rect();

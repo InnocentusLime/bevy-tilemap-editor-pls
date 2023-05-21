@@ -35,14 +35,10 @@ impl StateData {
 
         // TODO make naming more user-friendly
         let pick = queries.tilemap_query.iter(world)
+            .filter(|tilemap| matches!(tilemap.ty, TilemapType::Square)) // Ignore non-square tilemaps
             .find(|tilemap| ui.button(self.name_tilemap(tilemap.name)).clicked());
 
         if let Some(tilemap) = pick {
-            match &tilemap.ty {
-                TilemapType::Square => (),
-                _ => panic!("Tilemaps other than square tilemaps aren't supported."),
-            }
-
             return Message::EditTilemap(tilemap.entity)
         }
 

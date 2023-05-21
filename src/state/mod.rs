@@ -25,6 +25,16 @@ pub enum EditorError {
         #[source]
         query_error: QueryEntityError,
     },
+    #[error("The tilemap doesn't exist or is missing the TilemapTileSize component")]
+    NoTilemapSize {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+    #[error("Encountered an incorrect image handle: {handle:?}")]
+    InvalidImageHandle {
+        handle: Handle<Image>,
+    }
 }
 
 enum Message {

@@ -206,14 +206,19 @@ impl StateData {
         let queries = shared.query_storage.queries(world);
 
         // Fetch some info about the tilemap and its atlas
-        let tile_size: Vec2 = queries.tilemap_query.get(world, self.tilemap_entity)
-            .expect("Bad tilemap entity")
-            .tile_size
-            .into();
-        let atlas_size = world.resource::<Assets<Image>>()
-            .get(&self.tilemap_texture)
-            .expect("Invalid texture handle")
-            .size();
+        let tile_size: Vec2 = match queries.tilemap_query.get(world, self.tilemap_entity) {
+            Ok(x) => x.tile_size.into(),
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::NoTilemapSize {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            }),
+        };
+        let atlas_size = match world.resource::<Assets<Image>>().get(&self.tilemap_texture) {
+            Some(x) => x.size(),
+            None => return Message::ShowErrorAndExitEditing(EditorError::InvalidImageHandle {
+                handle: self.tilemap_texture.clone_weak(),
+            }),
+        };
 
         if ui.button("Exit").clicked() {
             return Message::ExitTilemapEditing;

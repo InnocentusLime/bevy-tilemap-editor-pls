@@ -1,14 +1,13 @@
-use bevy::{prelude::*, ecs::query::QueryEntityError};
+use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
-use thiserror::Error;
 
 use crate::{bevy_to_egui, gridify_int};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext, ToolError}, palette::TilePalette};
 
-use super::{ SharedStateData, Message };
+use super::{ SharedStateData, Message, EditorError };
 
 mod palette;
 mod tools;
@@ -132,17 +131,6 @@ mod flip_rotation {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum InitError {
-    #[error("Tilemap texture type {0:?} isn't supported yet")]
-    UnsupportedTilemapTextureType(&'static str),
-    #[error("The tilemap doesn't exist or is missing some important components")]
-    BadTilemap {
-        tilemap_entity: Entity,
-        #[source]
-        query_error: QueryEntityError,
-    },
-}
 pub(super) struct StateData {
     // editor state stuff
     tools: [Box<dyn Tool>; 4],
@@ -160,12 +148,15 @@ impl StateData {
         tilemap_entity: Entity,
         world: &mut World,
         shared_data: &mut SharedStateData,
-    ) -> Result<Self, InitError> {
+    ) -> Result<Self, EditorError> {
+        let queries = shared_data.query_storage.queries(world);
+
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
-        let queries = shared_data.query_storage.queries(world);
-        let texture = queries.tilemap_query.get(world, tilemap_entity)
-            .map_err(|query_error| InitError::BadTilemap {
+        // TODO do more tilemap diagnostics
+        let texture = queries.tilemap_query
+            .get(world, tilemap_entity)
+            .map_err(|query_error| EditorError::NoTilemapTexture {
                 tilemap_entity,
                 query_error,
             })?
@@ -177,8 +168,8 @@ impl StateData {
                 world.resource_mut::<EguiUserTextures>().add_image(x),
             ),
             // FIXME needs careful tweaking due to "atlas feature"
-            TilemapTexture::Vector(_) => return Err(InitError::UnsupportedTilemapTextureType("Vector")),
-            TilemapTexture::TextureContainer(_) => return Err(InitError::UnsupportedTilemapTextureType("TextureContainer")),
+            TilemapTexture::Vector(_) => return Err(EditorError::UnsupportedTilemapTextureType("Vector")),
+            TilemapTexture::TextureContainer(_) => return Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
         };
 
         Ok(Self {
@@ -313,13 +304,19 @@ impl StateData {
         painter.set_layer_id(egui::LayerId::background());
 
         // Fetch information about the tilemap and the cursor
+        // TODO consider introducing a user-friendly reaction to the absense of editor camera
         let Some(cam) = queries.camera_query.iter(world)
             .find(|x| x.is_active())
         else {
             return Message::None;
         };
-        let tilemap = queries.tilemap_query.get(world, self.tilemap_entity)
-            .expect("Invalid tilemap");
+        let tilemap = match queries.tilemap_query.get(world, self.tilemap_entity) {
+            Ok(x) => x,
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::EditorVitalComponentsMissing {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            }),
+        };
 
         // Compute the display rects
         let ref_points = cam.tilemap_points(viewport_rect, &tilemap);

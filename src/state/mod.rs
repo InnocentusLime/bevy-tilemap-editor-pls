@@ -1,15 +1,37 @@
 use bevy::prelude::*;
 use bevy_editor_pls::egui::Ui;
+use bevy::ecs::query::QueryEntityError;
+use thiserror::Error;
 
 use crate::queries::EditorQueryStorage;
 
 mod editing_tilemap;
 mod picking_tilemap;
 
+#[derive(Debug, Error)]
+pub enum EditorError {
+    #[error("Tilemap texture type {0:?} isn't supported yet")]
+    UnsupportedTilemapTextureType(&'static str),
+    #[error("The tilemap doesn't exist or is missing the tilemap texture component")]
+    NoTilemapTexture {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+    // TODO document
+    #[error("The tilemap doesn't exist or is missing some of the components required for the editor to operate")]
+    EditorVitalComponentsMissing {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+}
+
 enum Message {
     None,
     ExitTilemapEditing,
     EditTilemap(Entity),
+    ShowErrorAndExitEditing(EditorError),
 }
 
 struct SharedStateData {
@@ -53,6 +75,13 @@ impl EditorState {
                     Ok(state) =>  self.state_switch(State::Editing(state), world),
                     Err(e) => error!("Error: {e}"),
                 }
+            },
+            // TODO show in the ui
+            Message::ShowErrorAndExitEditing(err) => {
+                let state = picking_tilemap::StateData::new(world, &mut self.shared);
+
+                error!("The editor has closed due to the following error: {err}");
+                self.state_switch(State::PickingTilemap(state), world)
             },
         }
     }

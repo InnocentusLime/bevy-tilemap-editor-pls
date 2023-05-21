@@ -49,9 +49,10 @@ impl EditorState {
                 self.state_switch(State::PickingTilemap(state), world)
             },
             Message::EditTilemap(e) => {
-                let state = editing_tilemap::StateData::new(e, world, &mut self.shared);
-
-                self.state_switch(State::Editing(state), world)
+                match editing_tilemap::StateData::new(e, world, &mut self.shared) {
+                    Ok(state) =>  self.state_switch(State::Editing(state), world),
+                    Err(e) => error!("Error: {e}"),
+                }
             },
         }
     }

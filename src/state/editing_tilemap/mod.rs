@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ecs::query::QueryEntityError};
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
+use thiserror::Error;
 
 use crate::{bevy_to_egui, gridify_int};
 
@@ -131,6 +132,17 @@ mod flip_rotation {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum InitError {
+    #[error("Tilemap texture type {0:?} isn't supported yet")]
+    UnsupportedTilemapTextureType(&'static str),
+    #[error("The tilemap doesn't exist or is missing some important components")]
+    BadTilemap {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+}
 pub(super) struct StateData {
     // editor state stuff
     tools: [Box<dyn Tool>; 4],
@@ -148,12 +160,15 @@ impl StateData {
         tilemap_entity: Entity,
         world: &mut World,
         shared_data: &mut SharedStateData,
-    ) -> Self {
+    ) -> Result<Self, InitError> {
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
         let queries = shared_data.query_storage.queries(world);
         let texture = queries.tilemap_query.get(world, tilemap_entity)
-            .expect("Bad tilemap entity")
+            .map_err(|query_error| InitError::BadTilemap {
+                tilemap_entity,
+                query_error,
+            })?
             .texture
             .clone();
         let (tilemap_texture, tilemap_texture_egui) = match texture {
@@ -162,11 +177,11 @@ impl StateData {
                 world.resource_mut::<EguiUserTextures>().add_image(x),
             ),
             // FIXME needs careful tweaking due to "atlas feature"
-            TilemapTexture::Vector(_) => todo!(),
-            TilemapTexture::TextureContainer(_) => todo!(),
+            TilemapTexture::Vector(_) => return Err(InitError::UnsupportedTilemapTextureType("Vector")),
+            TilemapTexture::TextureContainer(_) => return Err(InitError::UnsupportedTilemapTextureType("TextureContainer")),
         };
 
-        Self {
+        Ok(Self {
             // editor state stuff
             tools: [
                 Box::new(TilePainter),
@@ -181,7 +196,7 @@ impl StateData {
             tilemap_entity,
             // egui stuff
             tilemap_texture_egui,
-        }
+        })
     }
 
     pub fn cleanup(

@@ -357,6 +357,7 @@ dependencies = [
  "bevy_ecs_tilemap",
  "bevy_editor_pls",
  "bevy_egui",
+ "thiserror",
 ]
 
 [[package]]

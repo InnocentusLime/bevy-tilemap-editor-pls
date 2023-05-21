@@ -3,8 +3,10 @@ mod tile_eraser;
 mod tile_whois;
 mod tile_picker;
 
+use bevy::ecs::query::QueryEntityError;
 use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
+use thiserror::Error;
 
 use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
 use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
@@ -15,6 +17,26 @@ pub use tile_painter::TilePainter;
 pub use tile_eraser::TileEraser;
 pub use tile_whois::TileWhoIs;
 pub use tile_picker::TilePicker;
+
+#[derive(Debug, Error)]
+pub enum ToolError {
+    #[error("The tilemap entity {tilemap_entity:?} doesn't exist or is missing some important components")]
+    BadTilemapEntity {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+    #[error("The tilemap entity {tilemap_entity:?} has tile {tile_entity:?} at {tile_pos:?}, but it either doesn't exist or is some important components")]
+    BadTileEntity {
+        tilemap_entity: Entity,
+        tile_pos: TilePos,
+        tile_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    }
+}
+
+pub type Result<T> = core::result::Result<T, ToolError>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TileProperties {
@@ -64,59 +86,84 @@ impl<'w, 's> ToolContext<'w, 's> {
         }
     }
 
-    pub fn get_tile(&self, pos: TilePos) -> Option<Entity> {
+    pub fn get_tile(&self, pos: TilePos) -> Result<Option<Entity>> {
         let storage = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .expect("Bad tilemap entity")
+            .map_err(|query_error| ToolError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?
             .storage;
 
-        storage.get(&pos)
+        Ok(storage.get(&pos))
     }
 
     pub fn despawn_tile(
         &mut self,
         pos: TilePos,
-    ) {
-        let Some(tile_entity) = self.get_tile(pos) else { return; };
+    ) -> Result<()> {
+        let Some(tile_entity) = self.get_tile(pos)? else { return Ok(()); };
 
-        self.world.despawn(tile_entity);
+        if !self.world.despawn(tile_entity) {
+            warn!(
+                "The tile entity ID was present at {pos:?} for tilemap {:?}, but it was an invalid entity ID",
+                self.tilemap_entity,
+            )
+        }
+
         self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
-            .expect("Bad tilemap entity")
+            .map_err(|query_error| ToolError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?
             .storage
             .remove(&pos);
+
+        Ok(())
     }
 
     pub fn set_tile_properties(
         &mut self,
-        pos: TilePos,
+        tile_pos: TilePos,
         props: TileProperties,
-    ) {
+    ) -> Result<()> {
         let container = self.world.get_resource_or_insert_with(EditorTileDataRegistry::default)
             .inner
             .clone();
         let container = container.lock().unwrap();
-        let tile_entity = match self.get_tile(pos) {
+        let tile_entity = match self.get_tile(tile_pos)? {
             Some(x) => x,
             None => {
                 let tile_entity = self.world.spawn(TileBundle {
                     tilemap_id: TilemapId(self.tilemap_entity),
-                    position: pos,
+                    position: tile_pos,
                     ..default()
                 }).id();
 
                 self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
-                    .expect("Bad tilemap entity")
+                    .map_err(|query_error| ToolError::BadTilemapEntity {
+                        tilemap_entity: self.tilemap_entity,
+                        query_error,
+                    })?
                     .storage
-                    .set(&pos, tile_entity);
+                    .set(&tile_pos, tile_entity);
 
                 tile_entity
             },
         };
         let tilemap_texture = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .expect("Bad tilemap entity")
+            .map_err(|query_error| ToolError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?
             .texture
             .clone();
         let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
-            .expect("Bad tile entity");
+            .map_err(|query_error| ToolError::BadTileEntity {
+                tile_pos,
+                tile_entity,
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?;
         let old_tile_texture = *props_item.texture;
         let new_tile_texture = props.texture;
 
@@ -138,21 +185,33 @@ impl<'w, 's> ToolContext<'w, 's> {
             &new_tile_texture,
             &mut tile_entity_mut,
         );
+
+        Ok(())
     }
 
     pub fn get_tile_properties(
         &self,
-        pos: TilePos,
-    ) -> Option<TileProperties> {
-        let tile_entity = self.get_tile(pos)?;
+        tile_pos: TilePos,
+    ) -> Result<Option<(Entity, TileProperties)>> {
+        let Some(tile_entity) = self.get_tile(tile_pos)? else {
+            return Ok(None)
+        };
         let props_item = self.tile_query.get_manual(&self.world, tile_entity)
-            .expect("Bad tile entity");
+            .map_err(|query_error| ToolError::BadTileEntity {
+                tile_pos,
+                tile_entity,
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?;
 
-        Some(TileProperties {
-            color: *props_item.color,
-            flip: *props_item.flip,
-            texture: *props_item.texture,
-        })
+        Ok(Some((
+            tile_entity,
+            TileProperties {
+                color: *props_item.color,
+                flip: *props_item.flip,
+                texture: *props_item.texture,
+            }
+        )))
     }
 
     pub fn tile_rect(
@@ -295,5 +354,5 @@ pub trait Tool: std::fmt::Debug + Send + Sync {
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
         painter: &Painter,
-    );
+    ) -> Result<()>;
 }

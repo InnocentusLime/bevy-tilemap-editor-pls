@@ -5,7 +5,7 @@ use bevy_egui::EguiUserTextures;
 
 use crate::{bevy_to_egui, gridify_int};
 
-use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
+use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext, ToolError}, palette::TilePalette};
 
 use super::{ SharedStateData, Message };
 
@@ -329,7 +329,7 @@ impl StateData {
             Some(hovered_tile) => {
                 ui.label(format!("Pos: {} {}", hovered_tile.x, hovered_tile.y));
 
-                self.tools[self.current_tool].viewport_ui(
+                let res = self.tools[self.current_tool].viewport_ui(
                     &mut ToolContext::new(
                         world,
                         ref_points,
@@ -343,6 +343,16 @@ impl StateData {
                     ui,
                     &painter,
                 );
+
+                match res {
+                    Err(e @ ToolError::BadTilemapEntity { .. }) => {
+                        // TODO better error reporting (show in ui)
+                        error!("Error: {e}");
+
+                        return Message::ExitTilemapEditing
+                    },
+                    _ => (),
+                }
             },
             None => {
                 ui.label("Pos: out of bounds");

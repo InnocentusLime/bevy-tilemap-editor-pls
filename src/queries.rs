@@ -85,3 +85,11 @@ impl<'a> TilemapCameraQueryItem<'a> {
         ).expect("Transforming failed")
     }
 }
+
+#[derive(bevy::ecs::query::WorldQuery)]
+#[world_query(mutable)]
+pub struct TilePropertyQuery {
+    pub color: &'static mut TileColor,
+    pub flip: &'static mut TileFlip,
+    pub texture: &'static mut TileTextureIndex,
+}

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_editor_pls::{editor_window::{EditorWindow, EditorWindowContext}, egui, AddEditorWindow};
 
 mod state;
+mod queries;
 mod tile_data;
 
 pub use state::EditorState;

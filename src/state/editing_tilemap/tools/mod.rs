@@ -3,25 +3,18 @@ mod tile_eraser;
 mod tile_whois;
 mod tile_picker;
 
-use bevy::{prelude::*, ecs::query::WorldQuery};
+use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
 
+use crate::queries::{ TilePropertyQuery, TilemapPoints };
 use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
 
-use super::{*, queries::TilemapPoints};
+use super::*;
 
 pub use tile_painter::TilePainter;
 pub use tile_eraser::TileEraser;
 pub use tile_whois::TileWhoIs;
 pub use tile_picker::TilePicker;
-
-#[derive(WorldQuery)]
-#[world_query(mutable)]
-pub struct TilePropertyQuery {
-    color: &'static mut TileColor,
-    flip: &'static mut TileFlip,
-    texture: &'static mut TileTextureIndex,
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct TileProperties {

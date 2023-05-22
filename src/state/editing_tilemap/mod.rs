@@ -5,15 +5,14 @@ use bevy_egui::EguiUserTextures;
 
 use crate::{bevy_to_egui, gridify_int};
 
-use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext, TilePropertyQuery}, palette::TilePalette};
+use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
 use super::{ SharedStateData, Message };
 
 mod palette;
-mod queries;
 mod tools;
 
-use queries::{ TilemapCameraQuery, TilemapQuery };
+use crate::queries::{ TilemapCameraQuery, TilemapQuery, TilePropertyQuery };
 
 // The y component is computed differently, so the higher you go,
 // the bigger y component of the result gets.

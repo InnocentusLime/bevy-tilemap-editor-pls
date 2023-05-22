@@ -139,7 +139,8 @@ pub(super) struct StateData {
     current_tool: usize,
     palette_state: TileProperties,
     // bevy stuff
-    query: QueryState<TilePropertyQuery, ()>,
+    tilemap_query: QueryState<TilemapQuery, ()>,
+    tile_query: QueryState<TilePropertyQuery, ()>,
     tilemap_texture: Handle<Image>,
     tilemap_entity: Entity,
     // egui stuff
@@ -178,7 +179,8 @@ impl StateData {
             current_tool: 0,
             palette_state: TileProperties::default(),
             // bevy stuff
-            query: world.query::<TilePropertyQuery>(),
+            tile_query: world.query::<TilePropertyQuery>(),
+            tilemap_query: world.query::<TilemapQuery>(),
             tilemap_texture,
             tilemap_entity,
             // egui stuff
@@ -335,7 +337,8 @@ impl StateData {
                         ref_points,
                         self.tilemap_entity,
                         self.tilemap_texture_egui,
-                        &mut self.query,
+                        &mut self.tile_query,
+                        &mut self.tilemap_query,
                         &mut self.palette_state,
                     ),
                     hovered_tile.into(),

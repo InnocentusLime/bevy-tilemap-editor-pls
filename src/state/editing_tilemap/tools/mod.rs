@@ -38,7 +38,8 @@ pub struct ToolContext<'w, 's> {
     points: TilemapPoints,
     tilemap_entity: Entity,
     tilemap_texture_egui: egui::TextureId,
-    query: &'s mut QueryState<TilePropertyQuery, ()>,
+    tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
+    tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
     pub brush_state: &'s mut TileProperties,
 }
 
@@ -48,7 +49,8 @@ impl<'w, 's> ToolContext<'w, 's> {
         points: TilemapPoints,
         tilemap_entity: Entity,
         tilemap_texture_egui: egui::TextureId,
-        query: &'s mut QueryState<TilePropertyQuery, ()>,
+        tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
+        tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
         brush_state: &'s mut TileProperties,
     ) -> Self {
         Self {
@@ -56,7 +58,8 @@ impl<'w, 's> ToolContext<'w, 's> {
             points,
             tilemap_entity,
             tilemap_texture_egui,
-            query,
+            tile_query,
+            tilemap_query,
             brush_state,
         }
     }
@@ -110,7 +113,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         let tilemap_texture = self.world.get::<TilemapTexture>(self.tilemap_entity)
             .expect("Bad tilemap ID")
             .clone();
-        let mut props_item = self.query.get_mut(&mut self.world, tile_entity)
+        let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
             .expect("Bad tile entity");
         let old_tile_texture = *props_item.texture;
         let new_tile_texture = props.texture;
@@ -140,7 +143,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         pos: TilePos,
     ) -> Option<TileProperties> {
         let tile_entity = self.get_tile(pos)?;
-        let props_item = self.query.get_manual(&self.world, tile_entity)
+        let props_item = self.tile_query.get_manual(&self.world, tile_entity)
             .expect("Bad tile entity");
 
         Some(TileProperties {

@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
 
-use crate::{bevy_to_egui, gridify_int};
+use crate::{bevy_to_egui, gridify_int, queries};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
@@ -151,9 +151,10 @@ impl StateData {
     ) -> Self {
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
-        let texture = world.query::<&TilemapTexture>()
-            .get(world, tilemap_entity)
-            .expect("The passes entity doesn't have a texture")
+        let queries = shared_data.query_storage.queries(world);
+        let texture = queries.tilemap_query.get(world, tilemap_entity)
+            .expect("Bad tilemap entity")
+            .texture
             .clone();
         let (tilemap_texture, tilemap_texture_egui) = match texture {
             TilemapTexture::Single(x) => (

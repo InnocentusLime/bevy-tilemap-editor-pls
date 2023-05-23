@@ -62,7 +62,7 @@ impl<'a> TilemapCameraQueryItem<'a> {
     pub fn tilemap_points(
         &self,
         viewport_rect: egui::Rect,
-        tilemap: &TilemapQueryItem,
+        tilemap: &TilemapQueryReadOnlyItem,
     ) -> TilemapPoints {
         let reftile_origin_off = Vec2::from(tilemap.tile_size) / 2.0f32;
         let map_lower_left = tilemap.transform.translation().truncate() - reftile_origin_off;

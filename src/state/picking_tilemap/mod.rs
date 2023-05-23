@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::egui;
 
+use crate::queries::TilemapQuery;
+
 use super::{ SharedStateData, Message };
 
 pub(super) struct StateData {
@@ -31,17 +33,17 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         // TODO make naming more user-friendly
-        let pick = world.query_filtered::<(Entity, Option<&Name>), With<TilemapSize>>()
-            .iter(world)
-            .find(|(_, name)| ui.button(self.name_tilemap(*name)).clicked());
+        let mut state = world.query::<TilemapQuery>();
+        let pick = state.iter(world)
+            .find(|tilemap| ui.button(self.name_tilemap(tilemap.name)).clicked());
 
-        if let Some((tilemap, _)) = pick {
-            match world.query::<&TilemapType>().get(world, tilemap).unwrap() {
+        if let Some(tilemap) = pick {
+            match &tilemap.ty {
                 TilemapType::Square => (),
                 _ => panic!("Tilemaps other than square tilemaps aren't supported."),
             }
 
-            return Message::EditTilemap(tilemap)
+            return Message::EditTilemap(tilemap.entity)
         }
 
         Message::None

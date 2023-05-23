@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::egui;
 
-use crate::queries::TilemapQuery;
-
 use super::{ SharedStateData, Message };
 
 pub(super) struct StateData {
@@ -16,7 +14,8 @@ impl StateData {
     }
 
     pub fn new(
-        _world: &mut World
+        _world: &mut World,
+        _shared_data: &mut SharedStateData,
     ) -> Self {
         StateData {  }
     }
@@ -28,13 +27,14 @@ impl StateData {
 
     pub fn ui(
         &mut self,
-        _shared: &mut SharedStateData,
+        shared: &mut SharedStateData,
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
+        let queries = shared.query_storage.queries(world);
+
         // TODO make naming more user-friendly
-        let mut state = world.query::<TilemapQuery>();
-        let pick = state.iter(world)
+        let pick = queries.tilemap_query.iter(world)
             .find(|tilemap| ui.button(self.name_tilemap(tilemap.name)).clicked());
 
         if let Some(tilemap) = pick {

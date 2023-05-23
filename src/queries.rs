@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ecs::query::WorldQuery};
 use bevy_editor_pls::egui;
 use bevy_ecs_tilemap::prelude::*;
 
@@ -97,4 +97,42 @@ pub struct TilePropertyQuery {
     pub color: &'static mut TileColor,
     pub flip: &'static mut TileFlip,
     pub texture: &'static mut TileTextureIndex,
+}
+
+pub struct EditorQueries<'a> {
+    pub tile_query: &'a mut QueryState<TilePropertyQuery>,
+    pub tilemap_query: &'a mut QueryState<TilemapQuery>,
+    pub camera_query: &'a mut QueryState<TilemapCameraQuery>,
+}
+
+pub struct EditorQueryStorage {
+    tile_query: Option<QueryState<TilePropertyQuery>>,
+    tilemap_query: Option<QueryState<TilemapQuery>>,
+    camera_query: Option<QueryState<TilemapCameraQuery>>,
+}
+
+impl EditorQueryStorage {
+    pub fn new() -> Self {
+        Self {
+            tile_query: None,
+            tilemap_query: None,
+            camera_query: None,
+        }
+    }
+
+    fn access_query<'a, Q: WorldQuery>(opt: &'a mut Option<QueryState<Q>>, world: &mut World) -> &'a mut QueryState<Q> {
+        let r = opt.get_or_insert_with(|| world.query());
+
+        r.update_archetypes(world);
+
+        r
+    }
+
+    pub fn queries(&mut self, world: &mut World) -> EditorQueries<'_> {
+        EditorQueries {
+            tile_query: Self::access_query(&mut self.tile_query, world),
+            tilemap_query: Self::access_query(&mut self.tilemap_query, world),
+            camera_query: Self::access_query(&mut self.camera_query, world),
+        }
+    }
 }

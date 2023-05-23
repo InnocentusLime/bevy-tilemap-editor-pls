@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_editor_pls::egui::Ui;
 
+use crate::queries::EditorQueryStorage;
+
 mod editing_tilemap;
 mod picking_tilemap;
 
@@ -11,7 +13,7 @@ enum Message {
 }
 
 struct SharedStateData {
-
+    query_storage: EditorQueryStorage,
 }
 
 enum State {
@@ -41,12 +43,16 @@ impl EditorState {
     fn handle_message(&mut self, msg: Message, world: &mut World) {
         match msg {
             Message::None => (),
-            Message::ExitTilemapEditing => self.state_switch(State::PickingTilemap(
-                picking_tilemap::StateData::new(world)
-            ), world),
-            Message::EditTilemap(e) => self.state_switch(State::Editing(
-                editing_tilemap::StateData::new(e, world)
-            ), world),
+            Message::ExitTilemapEditing => {
+                let state = picking_tilemap::StateData::new(world, &mut self.shared);
+
+                self.state_switch(State::PickingTilemap(state), world)
+            },
+            Message::EditTilemap(e) => {
+                let state = editing_tilemap::StateData::new(e, world, &mut self.shared);
+
+                self.state_switch(State::Editing(state), world)
+            },
         }
     }
 
@@ -72,7 +78,9 @@ impl EditorState {
 impl Default for EditorState {
     fn default() -> Self {
         Self {
-            shared: SharedStateData {  },
+            shared: SharedStateData {
+                query_storage: EditorQueryStorage::new(),
+            },
             state: State::PickingTilemap(picking_tilemap::StateData::empty())
         }
     }

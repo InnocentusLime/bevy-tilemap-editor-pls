@@ -11,6 +11,7 @@ pub struct TilemapQuery {
     pub size: &'static TilemapSize,
     pub transform: &'static GlobalTransform,
     pub storage: &'static mut TileStorage,
+    pub ty: &'static TilemapType,
 }
 
 #[derive(Debug)]

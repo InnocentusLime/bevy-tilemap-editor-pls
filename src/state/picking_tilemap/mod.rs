@@ -14,7 +14,8 @@ impl StateData {
     }
 
     pub fn new(
-        _world: &mut World
+        _world: &mut World,
+        _shared_data: &mut SharedStateData,
     ) -> Self {
         StateData {  }
     }
@@ -26,22 +27,23 @@ impl StateData {
 
     pub fn ui(
         &mut self,
-        _shared: &mut SharedStateData,
+        shared: &mut SharedStateData,
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
-        // TODO make naming more user-friendly
-        let pick = world.query_filtered::<(Entity, Option<&Name>), With<TilemapSize>>()
-            .iter(world)
-            .find(|(_, name)| ui.button(self.name_tilemap(*name)).clicked());
+        let queries = shared.query_storage.queries(world);
 
-        if let Some((tilemap, _)) = pick {
-            match world.query::<&TilemapType>().get(world, tilemap).unwrap() {
+        // TODO make naming more user-friendly
+        let pick = queries.tilemap_query.iter(world)
+            .find(|tilemap| ui.button(self.name_tilemap(tilemap.name)).clicked());
+
+        if let Some(tilemap) = pick {
+            match &tilemap.ty {
                 TilemapType::Square => (),
                 _ => panic!("Tilemaps other than square tilemaps aren't supported."),
             }
 
-            return Message::EditTilemap(tilemap)
+            return Message::EditTilemap(tilemap.entity)
         }
 
         Message::None

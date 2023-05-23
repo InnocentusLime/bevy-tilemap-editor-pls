@@ -1,14 +1,19 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ecs::query::WorldQuery};
 use bevy_editor_pls::egui;
 use bevy_ecs_tilemap::prelude::*;
 
 #[derive(bevy::ecs::query::WorldQuery)]
+#[world_query(mutable)]
 pub struct TilemapQuery {
-    texture: &'static TilemapTexture,
-    grid_size: &'static TilemapGridSize,
-    tile_size: &'static TilemapTileSize,
-    size: &'static TilemapSize,
-    transform: &'static GlobalTransform,
+    pub entity: Entity,
+    pub name: Option<&'static Name>,
+    pub texture: &'static TilemapTexture,
+    pub grid_size: &'static TilemapGridSize,
+    pub tile_size: &'static TilemapTileSize,
+    pub size: &'static TilemapSize,
+    pub transform: &'static GlobalTransform,
+    pub storage: &'static mut TileStorage,
+    pub ty: &'static TilemapType,
 }
 
 #[derive(Debug)]
@@ -60,7 +65,7 @@ impl<'a> TilemapCameraQueryItem<'a> {
     pub fn tilemap_points(
         &self,
         viewport_rect: egui::Rect,
-        tilemap: &TilemapQueryItem,
+        tilemap: &TilemapQueryReadOnlyItem,
     ) -> TilemapPoints {
         let reftile_origin_off = Vec2::from(tilemap.tile_size) / 2.0f32;
         let map_lower_left = tilemap.transform.translation().truncate() - reftile_origin_off;
@@ -83,5 +88,51 @@ impl<'a> TilemapCameraQueryItem<'a> {
             &(GlobalTransform::IDENTITY * *self.transform),
             pos.extend(1.0),
         ).expect("Transforming failed")
+    }
+}
+
+#[derive(bevy::ecs::query::WorldQuery)]
+#[world_query(mutable)]
+pub struct TilePropertyQuery {
+    pub color: &'static mut TileColor,
+    pub flip: &'static mut TileFlip,
+    pub texture: &'static mut TileTextureIndex,
+}
+
+pub struct EditorQueries<'a> {
+    pub tile_query: &'a mut QueryState<TilePropertyQuery>,
+    pub tilemap_query: &'a mut QueryState<TilemapQuery>,
+    pub camera_query: &'a mut QueryState<TilemapCameraQuery>,
+}
+
+pub struct EditorQueryStorage {
+    tile_query: Option<QueryState<TilePropertyQuery>>,
+    tilemap_query: Option<QueryState<TilemapQuery>>,
+    camera_query: Option<QueryState<TilemapCameraQuery>>,
+}
+
+impl EditorQueryStorage {
+    pub fn new() -> Self {
+        Self {
+            tile_query: None,
+            tilemap_query: None,
+            camera_query: None,
+        }
+    }
+
+    fn access_query<'a, Q: WorldQuery>(opt: &'a mut Option<QueryState<Q>>, world: &mut World) -> &'a mut QueryState<Q> {
+        let r = opt.get_or_insert_with(|| world.query());
+
+        r.update_archetypes(world);
+
+        r
+    }
+
+    pub fn queries(&mut self, world: &mut World) -> EditorQueries<'_> {
+        EditorQueries {
+            tile_query: Self::access_query(&mut self.tile_query, world),
+            tilemap_query: Self::access_query(&mut self.tilemap_query, world),
+            camera_query: Self::access_query(&mut self.camera_query, world),
+        }
     }
 }

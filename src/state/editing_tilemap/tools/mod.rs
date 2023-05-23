@@ -3,25 +3,18 @@ mod tile_eraser;
 mod tile_whois;
 mod tile_picker;
 
-use bevy::{prelude::*, ecs::query::WorldQuery};
+use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
 
+use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
 use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
 
-use super::{*, queries::TilemapPoints};
+use super::*;
 
 pub use tile_painter::TilePainter;
 pub use tile_eraser::TileEraser;
 pub use tile_whois::TileWhoIs;
 pub use tile_picker::TilePicker;
-
-#[derive(WorldQuery)]
-#[world_query(mutable)]
-pub struct TilePropertyQuery {
-    color: &'static mut TileColor,
-    flip: &'static mut TileFlip,
-    texture: &'static mut TileTextureIndex,
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct TileProperties {
@@ -45,7 +38,8 @@ pub struct ToolContext<'w, 's> {
     points: TilemapPoints,
     tilemap_entity: Entity,
     tilemap_texture_egui: egui::TextureId,
-    query: &'s mut QueryState<TilePropertyQuery, ()>,
+    tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
+    tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
     pub brush_state: &'s mut TileProperties,
 }
 
@@ -55,7 +49,8 @@ impl<'w, 's> ToolContext<'w, 's> {
         points: TilemapPoints,
         tilemap_entity: Entity,
         tilemap_texture_egui: egui::TextureId,
-        query: &'s mut QueryState<TilePropertyQuery, ()>,
+        tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
+        tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
         brush_state: &'s mut TileProperties,
     ) -> Self {
         Self {
@@ -63,16 +58,16 @@ impl<'w, 's> ToolContext<'w, 's> {
             points,
             tilemap_entity,
             tilemap_texture_egui,
-            query,
+            tile_query,
+            tilemap_query,
             brush_state,
         }
     }
 
     pub fn get_tile(&self, pos: TilePos) -> Option<Entity> {
-        let tilemap_entity = self.world.get_entity(self.tilemap_entity)
-            .expect("Bad tilemap ID");
-        let storage = tilemap_entity.get::<TileStorage>()
-            .expect("Tilemap has no storage");
+        let storage = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
+            .expect("Bad tilemap entity")
+            .storage;
 
         storage.get(&pos)
     }
@@ -84,8 +79,9 @@ impl<'w, 's> ToolContext<'w, 's> {
         let Some(tile_entity) = self.get_tile(pos) else { return; };
 
         self.world.despawn(tile_entity);
-        self.world.get_mut::<TileStorage>(self.tilemap_entity)
-            .expect("Tilemap has no storage")
+        self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
+            .expect("Bad tilemap entity")
+            .storage
             .remove(&pos);
     }
 
@@ -107,17 +103,19 @@ impl<'w, 's> ToolContext<'w, 's> {
                     ..default()
                 }).id();
 
-                self.world.get_mut::<TileStorage>(self.tilemap_entity)
-                    .expect("Tile storage not found")
+                self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
+                    .expect("Bad tilemap entity")
+                    .storage
                     .set(&pos, tile_entity);
 
                 tile_entity
             },
         };
-        let tilemap_texture = self.world.get::<TilemapTexture>(self.tilemap_entity)
-            .expect("Bad tilemap ID")
+        let tilemap_texture = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
+            .expect("Bad tilemap entity")
+            .texture
             .clone();
-        let mut props_item = self.query.get_mut(&mut self.world, tile_entity)
+        let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
             .expect("Bad tile entity");
         let old_tile_texture = *props_item.texture;
         let new_tile_texture = props.texture;
@@ -147,7 +145,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         pos: TilePos,
     ) -> Option<TileProperties> {
         let tile_entity = self.get_tile(pos)?;
-        let props_item = self.query.get_manual(&self.world, tile_entity)
+        let props_item = self.tile_query.get_manual(&self.world, tile_entity)
             .expect("Bad tile entity");
 
         Some(TileProperties {
@@ -265,15 +263,12 @@ impl<'w, 's> ToolContext<'w, 's> {
         &self,
         id: u32,
     ) -> egui::Rect {
-        let tilemap_entity = self.world.get_entity(self.tilemap_entity)
-            .expect("Bad tilemap ID");
-        let tilemap_texture = tilemap_entity.get::<TilemapTexture>()
-            .expect("Tilemap without texture");
-        let tilemap_tile_size = tilemap_entity.get::<TilemapTileSize>()
-            .expect("Tilemap without texture");
-        match &tilemap_texture {
+        let tilemap = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
+            .expect("Bad tilemap entity");
+
+        match &tilemap.texture {
             TilemapTexture::Single(x) => {
-                let tile_size = bevy_to_egui(tilemap_tile_size.into());
+                let tile_size = bevy_to_egui(tilemap.tile_size.into());
                 let atlas_size = self.world.resource::<Assets<Image>>().get(x)
                     .expect("Bad image handle")
                     .size();

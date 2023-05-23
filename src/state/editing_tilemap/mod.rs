@@ -1,19 +1,16 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::{egui_dock, egui, default_windows::cameras::EditorCamera};
+use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
 
 use crate::{bevy_to_egui, gridify_int};
 
-use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext, TilePropertyQuery}, palette::TilePalette};
+use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
 use super::{ SharedStateData, Message };
 
 mod palette;
-mod queries;
 mod tools;
-
-use queries::{ TilemapCameraQuery, TilemapQuery };
 
 // The y component is computed differently, so the higher you go,
 // the bigger y component of the result gets.
@@ -140,7 +137,6 @@ pub(super) struct StateData {
     current_tool: usize,
     palette_state: TileProperties,
     // bevy stuff
-    query: QueryState<TilePropertyQuery, ()>,
     tilemap_texture: Handle<Image>,
     tilemap_entity: Entity,
     // egui stuff
@@ -151,12 +147,14 @@ impl StateData {
     pub fn new(
         tilemap_entity: Entity,
         world: &mut World,
+        shared_data: &mut SharedStateData,
     ) -> Self {
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
-        let texture = world.query::<&TilemapTexture>()
-            .get(world, tilemap_entity)
-            .expect("The passes entity doesn't have a texture")
+        let queries = shared_data.query_storage.queries(world);
+        let texture = queries.tilemap_query.get(world, tilemap_entity)
+            .expect("Bad tilemap entity")
+            .texture
             .clone();
         let (tilemap_texture, tilemap_texture_egui) = match texture {
             TilemapTexture::Single(x) => (
@@ -179,7 +177,6 @@ impl StateData {
             current_tool: 0,
             palette_state: TileProperties::default(),
             // bevy stuff
-            query: world.query::<TilePropertyQuery>(),
             tilemap_texture,
             tilemap_entity,
             // egui stuff
@@ -196,14 +193,16 @@ impl StateData {
 
     pub fn ui(
         &mut self,
-        _shared: &mut SharedStateData,
+        shared: &mut SharedStateData,
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
+        let queries = shared.query_storage.queries(world);
+
         // Fetch some info about the tilemap and its atlas
-        let tile_size: Vec2 = world.query::<&TilemapTileSize>()
-            .get(world, self.tilemap_entity)
-            .expect("Selected tilemap has no tile size")
+        let tile_size: Vec2 = queries.tilemap_query.get(world, self.tilemap_entity)
+            .expect("Bad tilemap entity")
+            .tile_size
             .into();
         let atlas_size = world.resource::<Assets<Image>>()
             .get(&self.tilemap_texture)
@@ -281,10 +280,12 @@ impl StateData {
 
     pub fn viewport_ui(
         &mut self,
-        _shared: &mut SharedStateData,
+        shared: &mut SharedStateData,
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
+        let mut queries = shared.query_storage.queries(world);
+
         // FIXME the clipping has been improved, but the frames
         // still paint themselves on top of other widgets
         let viewport_rect = ui.clip_rect();
@@ -297,14 +298,12 @@ impl StateData {
         painter.set_layer_id(egui::LayerId::background());
 
         // Fetch information about the tilemap and the cursor
-        let mut cam_q = world.query_filtered::<TilemapCameraQuery, (With<EditorCamera>, With<Camera2d>)>();
-        let mut tilemap_q = world.query::<TilemapQuery>();
-        let Some(cam) = cam_q.iter(world)
+        let Some(cam) = queries.camera_query.iter(world)
             .find(|x| x.is_active())
         else {
             return Message::None;
         };
-        let tilemap = tilemap_q.get(world, self.tilemap_entity)
+        let tilemap = queries.tilemap_query.get(world, self.tilemap_entity)
             .expect("Invalid tilemap");
 
         // Compute the display rects
@@ -336,7 +335,8 @@ impl StateData {
                         ref_points,
                         self.tilemap_entity,
                         self.tilemap_texture_egui,
-                        &mut self.query,
+                        &mut queries.tile_query,
+                        &mut queries.tilemap_query,
                         &mut self.palette_state,
                     ),
                     hovered_tile.into(),

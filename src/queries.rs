@@ -4,11 +4,12 @@ use bevy_ecs_tilemap::prelude::*;
 
 #[derive(bevy::ecs::query::WorldQuery)]
 pub struct TilemapQuery {
-    texture: &'static TilemapTexture,
-    grid_size: &'static TilemapGridSize,
-    tile_size: &'static TilemapTileSize,
-    size: &'static TilemapSize,
-    transform: &'static GlobalTransform,
+    pub texture: &'static TilemapTexture,
+    pub grid_size: &'static TilemapGridSize,
+    pub tile_size: &'static TilemapTileSize,
+    pub size: &'static TilemapSize,
+    pub transform: &'static GlobalTransform,
+    pub storage: &'static TileStorage,
 }
 
 #[derive(Debug)]

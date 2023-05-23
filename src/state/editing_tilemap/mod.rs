@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
 
-use crate::{bevy_to_egui, gridify_int, queries};
+use crate::{bevy_to_egui, gridify_int};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
@@ -193,14 +193,16 @@ impl StateData {
 
     pub fn ui(
         &mut self,
-        _shared: &mut SharedStateData,
+        shared: &mut SharedStateData,
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
+        let queries = shared.query_storage.queries(world);
+
         // Fetch some info about the tilemap and its atlas
-        let tile_size: Vec2 = world.query::<&TilemapTileSize>()
-            .get(world, self.tilemap_entity)
-            .expect("Selected tilemap has no tile size")
+        let tile_size: Vec2 = queries.tilemap_query.get(world, self.tilemap_entity)
+            .expect("Bad tilemap entity")
+            .tile_size
             .into();
         let atlas_size = world.resource::<Assets<Image>>()
             .get(&self.tilemap_texture)

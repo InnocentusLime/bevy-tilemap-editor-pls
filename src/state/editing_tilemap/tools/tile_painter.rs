@@ -19,7 +19,7 @@ impl Tool for TilePainter {
         painter: &Painter,
     ) -> Result<()> {
         let display_rect = ctx.tile_rect(hovered_tile);
-        ctx.paint_tile(display_rect, painter);
+        ctx.paint_tile(display_rect, painter)?;
         painter.rect_stroke(
             display_rect,
             0.0,

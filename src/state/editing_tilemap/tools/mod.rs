@@ -290,36 +290,43 @@ impl<'w, 's> ToolContext<'w, 's> {
         &self,
         ui_rect: egui::Rect,
         painter: &Painter,
-    ) {
+    ) -> Result<()> {
         painter.add(self.brush_mesh(
             ui_rect,
-            self.tile_info(self.brush_state.texture.0),
+            self.tile_info(self.brush_state.texture.0)?,
         ));
+
+        Ok(())
     }
 
     fn tile_info(
         &self,
         id: u32,
-    ) -> egui::Rect {
+    ) -> Result<egui::Rect> {
         let tilemap = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .expect("Bad tilemap entity");
+            .map_err(|query_error| EditorError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            })?;
 
         match &tilemap.texture {
             TilemapTexture::Single(x) => {
                 let tile_size = bevy_to_egui(tilemap.tile_size.into());
                 let atlas_size = self.world.resource::<Assets<Image>>().get(x)
-                    .expect("Bad image handle")
+                    .ok_or(EditorError::InvalidImageHandle {
+                        handle: x.clone_weak(),
+                    })?
                     .size();
                 let pos = tile_id_to_pos(id, bevy_to_egui(atlas_size), tile_size);
                 let uv = egui::Rect::from_min_size(pos, tile_size);
 
-                egui::Rect {
+                Ok(egui::Rect {
                     min: egui::pos2(uv.min.x / atlas_size.x, uv.min.y / atlas_size.y),
                     max: egui::pos2(uv.max.x / atlas_size.x, uv.max.y / atlas_size.y),
-                }
+                })
             },
-            TilemapTexture::Vector(_) => todo!(),
-            TilemapTexture::TextureContainer(_) => todo!(),
+            TilemapTexture::Vector(_) => Err(EditorError::UnsupportedTilemapTextureType("Vector")),
+            TilemapTexture::TextureContainer(_) => Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
         }
     }
 }

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_editor_pls::egui::Ui;
 use bevy::ecs::query::QueryEntityError;
 use thiserror::Error;
@@ -12,16 +13,24 @@ mod picking_tilemap;
 pub enum EditorError {
     #[error("Tilemap texture type {0:?} isn't supported yet")]
     UnsupportedTilemapTextureType(&'static str),
-    #[error("The tilemap doesn't exist or is missing some of the components required for the editor to operate")]
+    #[error("Encountered an incorrect image handle: {handle:?}")]
+    InvalidImageHandle {
+        handle: Handle<Image>,
+    },
+    #[error("The tilemap entity {tilemap_entity:?} doesn't exist or is missing some important components")]
     BadTilemapEntity {
         tilemap_entity: Entity,
         #[source]
         query_error: QueryEntityError,
     },
-    #[error("Encountered an incorrect image handle: {handle:?}")]
-    InvalidImageHandle {
-        handle: Handle<Image>,
-    }
+    #[error("The tilemap entity {tilemap_entity:?} has tile {tile_entity:?} at {tile_pos:?}, but it either doesn't exist or is some important components")]
+    BadTileEntity {
+        tilemap_entity: Entity,
+        tile_pos: TilePos,
+        tile_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
 }
 
 enum Message {

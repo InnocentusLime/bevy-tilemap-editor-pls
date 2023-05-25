@@ -3,11 +3,8 @@ mod tile_eraser;
 mod tile_whois;
 mod tile_picker;
 
-use bevy::ecs::query::QueryEntityError;
 use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
-use thiserror::Error;
-
 use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
 use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
 
@@ -18,25 +15,7 @@ pub use tile_eraser::TileEraser;
 pub use tile_whois::TileWhoIs;
 pub use tile_picker::TilePicker;
 
-#[derive(Debug, Error)]
-pub enum ToolError {
-    #[error("The tilemap entity {tilemap_entity:?} doesn't exist or is missing some important components")]
-    BadTilemapEntity {
-        tilemap_entity: Entity,
-        #[source]
-        query_error: QueryEntityError,
-    },
-    #[error("The tilemap entity {tilemap_entity:?} has tile {tile_entity:?} at {tile_pos:?}, but it either doesn't exist or is some important components")]
-    BadTileEntity {
-        tilemap_entity: Entity,
-        tile_pos: TilePos,
-        tile_entity: Entity,
-        #[source]
-        query_error: QueryEntityError,
-    }
-}
-
-pub type Result<T> = core::result::Result<T, ToolError>;
+pub type Result<T> = core::result::Result<T, EditorError>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TileProperties {
@@ -88,7 +67,7 @@ impl<'w, 's> ToolContext<'w, 's> {
 
     pub fn get_tile(&self, pos: TilePos) -> Result<Option<Entity>> {
         let storage = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .map_err(|query_error| ToolError::BadTilemapEntity {
+            .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             })?
@@ -111,7 +90,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         }
 
         self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
-            .map_err(|query_error| ToolError::BadTilemapEntity {
+            .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             })?
@@ -140,7 +119,7 @@ impl<'w, 's> ToolContext<'w, 's> {
                 }).id();
 
                 self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
-                    .map_err(|query_error| ToolError::BadTilemapEntity {
+                    .map_err(|query_error| EditorError::BadTilemapEntity {
                         tilemap_entity: self.tilemap_entity,
                         query_error,
                     })?
@@ -151,14 +130,14 @@ impl<'w, 's> ToolContext<'w, 's> {
             },
         };
         let tilemap_texture = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .map_err(|query_error| ToolError::BadTilemapEntity {
+            .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             })?
             .texture
             .clone();
         let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
-            .map_err(|query_error| ToolError::BadTileEntity {
+            .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
                 tilemap_entity: self.tilemap_entity,
@@ -197,7 +176,7 @@ impl<'w, 's> ToolContext<'w, 's> {
             return Ok(None)
         };
         let props_item = self.tile_query.get_manual(&self.world, tile_entity)
-            .map_err(|query_error| ToolError::BadTileEntity {
+            .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
                 tilemap_entity: self.tilemap_entity,

@@ -5,7 +5,7 @@ use bevy_egui::EguiUserTextures;
 
 use crate::{bevy_to_egui, gridify_int};
 
-use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext, ToolError}, palette::TilePalette};
+use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
 use super::{ SharedStateData, Message, EditorError };
 
@@ -362,7 +362,7 @@ impl StateData {
                 );
 
                 match res {
-                    Err(e @ ToolError::BadTilemapEntity { .. }) => {
+                    Err(e @ EditorError::BadTilemapEntity { .. }) => {
                         // TODO better error reporting (show in ui)
                         error!("Error: {e}");
 

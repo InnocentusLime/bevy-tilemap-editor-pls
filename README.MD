@@ -34,7 +34,6 @@ In addition, if you have some additional components, that you attach to the tile
 
 # Known issues / intricacies
 
-- There is a lot of "expect()" and "unwrap()" in the code. Some of them aren't really justified and will for sure crash the app. They should be replaced with returning a `Result<T, E>`.
 - Currently, there's not "proper" layer support. `bevy_ecs_tilemap` allows emulating layers by spawning a separate tilemap for that. In other editors you can simply reorder the layers, which is easier-said-than-done when it comes to bevy, since all objects are z-coordinate ordered.
 - The plugin doesn't support tilemaps that have gone through `Transforms` other than mere translation.
 - Tile painting can spill out when your mouse button is still down.

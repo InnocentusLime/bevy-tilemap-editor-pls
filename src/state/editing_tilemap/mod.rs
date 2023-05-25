@@ -208,7 +208,7 @@ impl StateData {
         // Fetch some info about the tilemap and its atlas
         let tile_size: Vec2 = match queries.tilemap_query.get(world, self.tilemap_entity) {
             Ok(x) => x.tile_size.into(),
-            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::NoTilemapSize {
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::EditorVitalComponentsMissing {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             }),

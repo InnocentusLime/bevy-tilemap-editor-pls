@@ -18,15 +18,8 @@ pub enum EditorError {
         #[source]
         query_error: QueryEntityError,
     },
-    // TODO document
     #[error("The tilemap doesn't exist or is missing some of the components required for the editor to operate")]
     EditorVitalComponentsMissing {
-        tilemap_entity: Entity,
-        #[source]
-        query_error: QueryEntityError,
-    },
-    #[error("The tilemap doesn't exist or is missing the TilemapTileSize component")]
-    NoTilemapSize {
         tilemap_entity: Entity,
         #[source]
         query_error: QueryEntityError,

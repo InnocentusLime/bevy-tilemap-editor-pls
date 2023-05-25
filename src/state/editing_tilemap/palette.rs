@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_editor_pls::egui;
 
-use crate::{tile_id_to_pos, gridify_int, int_tile_pos_to_id};
+use crate::coord_utils::{tile_id_to_pos, gridify_int, int_tile_pos_to_id};
 
 pub struct TilePalette<'a> {
     selected_tile: &'a mut u32,

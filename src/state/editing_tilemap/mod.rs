@@ -3,7 +3,7 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
 
-use crate::{bevy_to_egui, gridify_int};
+use crate::coord_utils::{bevy_to_egui, gridify_int};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 

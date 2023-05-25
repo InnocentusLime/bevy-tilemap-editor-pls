@@ -6,7 +6,8 @@ mod tile_picker;
 use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
 use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
-use crate::{tile_id_to_pos, tile_data::EditorTileDataRegistry};
+use crate::tile_data::EditorTileDataRegistry;
+use crate::coord_utils::tile_id_to_pos;
 
 use super::*;
 

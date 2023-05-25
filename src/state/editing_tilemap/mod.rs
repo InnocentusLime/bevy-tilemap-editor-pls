@@ -156,7 +156,7 @@ impl StateData {
         // TODO do more tilemap diagnostics
         let texture = queries.tilemap_query
             .get(world, tilemap_entity)
-            .map_err(|query_error| EditorError::EditorVitalComponentsMissing {
+            .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity,
                 query_error,
             })?
@@ -208,7 +208,7 @@ impl StateData {
         // Fetch some info about the tilemap and its atlas
         let tile_size: Vec2 = match queries.tilemap_query.get(world, self.tilemap_entity) {
             Ok(x) => x.tile_size.into(),
-            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::EditorVitalComponentsMissing {
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             }),
@@ -317,7 +317,7 @@ impl StateData {
         };
         let tilemap = match queries.tilemap_query.get(world, self.tilemap_entity) {
             Ok(x) => x,
-            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::EditorVitalComponentsMissing {
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
             }),

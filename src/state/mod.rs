@@ -13,7 +13,7 @@ pub enum EditorError {
     #[error("Tilemap texture type {0:?} isn't supported yet")]
     UnsupportedTilemapTextureType(&'static str),
     #[error("The tilemap doesn't exist or is missing some of the components required for the editor to operate")]
-    EditorVitalComponentsMissing {
+    BadTilemapEntity {
         tilemap_entity: Entity,
         #[source]
         query_error: QueryEntityError,

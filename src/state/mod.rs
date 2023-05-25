@@ -12,12 +12,6 @@ mod picking_tilemap;
 pub enum EditorError {
     #[error("Tilemap texture type {0:?} isn't supported yet")]
     UnsupportedTilemapTextureType(&'static str),
-    #[error("The tilemap doesn't exist or is missing the tilemap texture component")]
-    NoTilemapTexture {
-        tilemap_entity: Entity,
-        #[source]
-        query_error: QueryEntityError,
-    },
     #[error("The tilemap doesn't exist or is missing some of the components required for the editor to operate")]
     EditorVitalComponentsMissing {
         tilemap_entity: Entity,

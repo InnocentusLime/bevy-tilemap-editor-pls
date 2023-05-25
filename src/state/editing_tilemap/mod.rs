@@ -156,7 +156,7 @@ impl StateData {
         // TODO do more tilemap diagnostics
         let texture = queries.tilemap_query
             .get(world, tilemap_entity)
-            .map_err(|query_error| EditorError::NoTilemapTexture {
+            .map_err(|query_error| EditorError::EditorVitalComponentsMissing {
                 tilemap_entity,
                 query_error,
             })?

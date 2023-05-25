@@ -14,22 +14,12 @@ pub(crate) struct TileData {
     pub(crate) components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
 }
 
-#[derive(Default)]
-pub(crate) struct EditorTileDataInternal {
-    pub (crate) map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
-}
-
-impl EditorTileDataInternal {
+impl TileData {
     pub fn insert(
         &self,
-        tileset_info: &TilemapTexture,
-        tile_id: &TileTextureIndex,
         entity: &mut EntityMut,
     ) {
-        let data = self.map.get(tileset_info)
-            .and_then(|x| x.get(&tile_id.0));
-
-        data.into_iter().flat_map(|x| x.components.values())
+        self.components.values()
             .for_each(|(refl, component)| {
                 refl.insert(entity, component.as_ref())
             })
@@ -37,19 +27,18 @@ impl EditorTileDataInternal {
 
     pub fn remove(
         &self,
-        tileset_info: &TilemapTexture,
-        tile_id: &TileTextureIndex,
         entity: &mut EntityMut,
     ) {
-        let data = self.map.get(tileset_info)
-            .and_then(|x| x.get(&tile_id.0));
-
-
-        data.into_iter().flat_map(|x| x.components.values())
+        self.components.values()
             .for_each(|(refl, _)| {
                 refl.remove(entity)
             })
     }
+}
+
+#[derive(Default)]
+pub(crate) struct EditorTileDataInternal {
+    pub (crate) map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
 }
 
 #[derive(Default, Resource)]

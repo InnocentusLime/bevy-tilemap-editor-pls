@@ -6,7 +6,6 @@ mod tile_picker;
 use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
 use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
-use crate::tile_data::EditorTileDataRegistry;
 use crate::coord_utils::tile_id_to_pos;
 
 use super::*;
@@ -42,17 +41,19 @@ pub struct ToolContext<'w, 's> {
     tilemap_texture_egui: egui::TextureId,
     tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
     tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
+    tile_data: Option<&'s mut HashMap<u32, TileData>>,
     pub brush_state: &'s mut TileProperties,
 }
 
 impl<'w, 's> ToolContext<'w, 's> {
-    pub fn new(
+    pub(crate) fn new(
         world: &'w mut World,
         points: TilemapPoints,
         tilemap_entity: Entity,
         tilemap_texture_egui: egui::TextureId,
         tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
         tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
+        tile_data: Option<&'s mut HashMap<u32, TileData>>,
         brush_state: &'s mut TileProperties,
     ) -> Self {
         Self {
@@ -62,6 +63,7 @@ impl<'w, 's> ToolContext<'w, 's> {
             tilemap_texture_egui,
             tile_query,
             tilemap_query,
+            tile_data,
             brush_state,
         }
     }
@@ -106,10 +108,6 @@ impl<'w, 's> ToolContext<'w, 's> {
         tile_pos: TilePos,
         props: TileProperties,
     ) -> Result<()> {
-        let container = self.world.get_resource_or_insert_with(EditorTileDataRegistry::default)
-            .inner
-            .clone();
-        let container = container.lock().unwrap();
         let tile_entity = match self.get_tile(tile_pos)? {
             Some(x) => x,
             None => {
@@ -130,13 +128,6 @@ impl<'w, 's> ToolContext<'w, 's> {
                 tile_entity
             },
         };
-        let tilemap_texture = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
-            .map_err(|query_error| EditorError::BadTilemapEntity {
-                tilemap_entity: self.tilemap_entity,
-                query_error,
-            })?
-            .texture
-            .clone();
         let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
             .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
@@ -152,19 +143,17 @@ impl<'w, 's> ToolContext<'w, 's> {
         *props_item.texture = props.texture;
 
         let mut tile_entity_mut = self.world.entity_mut(tile_entity);
+        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
 
         if old_tile_texture.0 != new_tile_texture.0 {
-            container.remove(
-                &tilemap_texture,
-                &old_tile_texture,
-                &mut tile_entity_mut,
-            );
+            if let Some(old_data) = tile_data.get(&old_tile_texture.0) {
+                old_data.remove(&mut tile_entity_mut);
+            }
         }
-        container.insert(
-            &tilemap_texture,
-            &new_tile_texture,
-            &mut tile_entity_mut,
-        );
+
+        if let Some(new_data) = tile_data.get(&new_tile_texture.0) {
+            new_data.insert(&mut tile_entity_mut);
+        }
 
         Ok(())
     }
@@ -329,6 +318,35 @@ impl<'w, 's> ToolContext<'w, 's> {
             TilemapTexture::Vector(_) => Err(EditorError::UnsupportedTilemapTextureType("Vector")),
             TilemapTexture::TextureContainer(_) => Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
         }
+    }
+
+    pub fn copy_tile_data(
+        &mut self,
+        tile_pos: TilePos,
+    ) -> Result<()> {
+        let Some(tile_entity) = self.get_tile(tile_pos)? else { return Ok(()) };
+        let tile_id = self.tile_query.get_manual(
+            &self.world,
+            tile_entity
+        ).map_err(|query_error| EditorError::BadTileEntity {
+            tilemap_entity: self.tilemap_entity,
+            tile_pos,
+            tile_entity,
+            query_error,
+        })?
+        .texture.0;
+        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
+        let tile_data = tile_data.entry(tile_id).or_default();
+        let mut tile_entity = self.world.entity_mut(tile_entity);
+
+        for (reflect_component, value) in tile_data.components.values_mut() {
+            let Some(val) = reflect_component.reflect_mut(&mut tile_entity) else { continue };
+            let new_value = val.clone_value();
+
+            *value = new_value;
+        }
+
+        Ok(())
     }
 }
 

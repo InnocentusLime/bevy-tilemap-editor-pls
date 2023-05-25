@@ -331,6 +331,8 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         let mut queries = shared.query_storage.queries(world);
+        let tile_data = world.resource::<EditorTileDataRegistry>().inner.clone();
+        let mut lock = tile_data.lock().unwrap();
 
         // FIXME the clipping has been improved, but the frames
         // still paint themselves on top of other widgets
@@ -389,6 +391,7 @@ impl StateData {
                         self.tilemap_texture_egui,
                         &mut queries.tile_query,
                         &mut queries.tilemap_query,
+                        lock.map.get_mut(&tilemap.texture),
                         &mut self.palette_state,
                     ),
                     hovered_tile.into(),

@@ -17,7 +17,7 @@ impl Tool for TilePicker {
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
         painter: &Painter,
-    ) {
+    ) -> Result<()> {
         let display_rect = ctx.tile_rect(hovered_tile);
         painter.rect_stroke(
             display_rect,
@@ -26,9 +26,11 @@ impl Tool for TilePicker {
         );
 
         if ui.input(|x| x.pointer.button_down(egui::PointerButton::Primary)) {
-            if let Some(props) = ctx.get_tile_properties(hovered_tile) {
+            if let Some((_, props)) = ctx.get_tile_properties(hovered_tile)? {
                 *ctx.brush_state = props;
             }
         }
+
+        Ok(())
     }
 }

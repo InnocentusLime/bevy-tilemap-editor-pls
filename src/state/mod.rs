@@ -1,15 +1,43 @@
 use bevy::prelude::*;
+use bevy_ecs_tilemap::tiles::TilePos;
 use bevy_editor_pls::egui::Ui;
+use bevy::ecs::query::QueryEntityError;
+use thiserror::Error;
 
 use crate::queries::EditorQueryStorage;
 
 mod editing_tilemap;
 mod picking_tilemap;
 
+#[derive(Debug, Error)]
+pub enum EditorError {
+    #[error("Tilemap texture type {0:?} isn't supported yet")]
+    UnsupportedTilemapTextureType(&'static str),
+    #[error("Encountered an incorrect image handle: {handle:?}")]
+    InvalidImageHandle {
+        handle: Handle<Image>,
+    },
+    #[error("The tilemap entity {tilemap_entity:?} doesn't exist or is missing some important components")]
+    BadTilemapEntity {
+        tilemap_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+    #[error("The tilemap entity {tilemap_entity:?} has tile {tile_entity:?} at {tile_pos:?}, but it either doesn't exist or is some important components")]
+    BadTileEntity {
+        tilemap_entity: Entity,
+        tile_pos: TilePos,
+        tile_entity: Entity,
+        #[source]
+        query_error: QueryEntityError,
+    },
+}
+
 enum Message {
     None,
     ExitTilemapEditing,
     EditTilemap(Entity),
+    ShowErrorAndExitEditing(EditorError),
 }
 
 struct SharedStateData {
@@ -49,9 +77,17 @@ impl EditorState {
                 self.state_switch(State::PickingTilemap(state), world)
             },
             Message::EditTilemap(e) => {
-                let state = editing_tilemap::StateData::new(e, world, &mut self.shared);
+                match editing_tilemap::StateData::new(e, world, &mut self.shared) {
+                    Ok(state) =>  self.state_switch(State::Editing(state), world),
+                    Err(e) => error!("Error: {e}"),
+                }
+            },
+            // TODO show in the ui
+            Message::ShowErrorAndExitEditing(err) => {
+                let state = picking_tilemap::StateData::new(world, &mut self.shared);
 
-                self.state_switch(State::Editing(state), world)
+                error!("The editor has closed due to the following error: {err}");
+                self.state_switch(State::PickingTilemap(state), world)
             },
         }
     }

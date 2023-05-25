@@ -39,7 +39,7 @@ impl Tool for TileWhoIs {
         hovered_tile: TilePos,
         ui: &mut egui::Ui,
         painter: &Painter,
-    ) {
+    ) -> Result<()> {
         let display_rect = ctx.tile_rect(hovered_tile);
         painter.rect_stroke(
             display_rect,
@@ -47,11 +47,7 @@ impl Tool for TileWhoIs {
             egui::Stroke::new(1.0, egui::Color32::RED)
         );
 
-        let ent_and_props = ctx.get_tile(hovered_tile)
-            .and_then(|entity|
-                ctx.get_tile_properties(hovered_tile)
-                .map(|props| (entity, props))
-            );
+        let ent_and_props = ctx.get_tile_properties(hovered_tile)?;
         if let Some((ent, props)) = ent_and_props {
             ui.label(format!(
                 "Entity ID: {}",
@@ -74,5 +70,7 @@ impl Tool for TileWhoIs {
                 flip_flags_to_rotation(props.flip),
             ));
         }
+
+        Ok(())
     }
 }

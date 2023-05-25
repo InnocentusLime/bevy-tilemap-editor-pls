@@ -7,7 +7,7 @@ use crate::{bevy_to_egui, gridify_int};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
-use super::{ SharedStateData, Message };
+use super::{ SharedStateData, Message, EditorError };
 
 mod palette;
 mod tools;
@@ -148,12 +148,18 @@ impl StateData {
         tilemap_entity: Entity,
         world: &mut World,
         shared_data: &mut SharedStateData,
-    ) -> Self {
+    ) -> Result<Self, EditorError> {
+        let queries = shared_data.query_storage.queries(world);
+
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
-        let queries = shared_data.query_storage.queries(world);
-        let texture = queries.tilemap_query.get(world, tilemap_entity)
-            .expect("Bad tilemap entity")
+        // TODO do more tilemap diagnostics
+        let texture = queries.tilemap_query
+            .get(world, tilemap_entity)
+            .map_err(|query_error| EditorError::BadTilemapEntity {
+                tilemap_entity,
+                query_error,
+            })?
             .texture
             .clone();
         let (tilemap_texture, tilemap_texture_egui) = match texture {
@@ -162,11 +168,11 @@ impl StateData {
                 world.resource_mut::<EguiUserTextures>().add_image(x),
             ),
             // FIXME needs careful tweaking due to "atlas feature"
-            TilemapTexture::Vector(_) => todo!(),
-            TilemapTexture::TextureContainer(_) => todo!(),
+            TilemapTexture::Vector(_) => return Err(EditorError::UnsupportedTilemapTextureType("Vector")),
+            TilemapTexture::TextureContainer(_) => return Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
         };
 
-        Self {
+        Ok(Self {
             // editor state stuff
             tools: [
                 Box::new(TilePainter),
@@ -181,7 +187,7 @@ impl StateData {
             tilemap_entity,
             // egui stuff
             tilemap_texture_egui,
-        }
+        })
     }
 
     pub fn cleanup(
@@ -200,14 +206,19 @@ impl StateData {
         let queries = shared.query_storage.queries(world);
 
         // Fetch some info about the tilemap and its atlas
-        let tile_size: Vec2 = queries.tilemap_query.get(world, self.tilemap_entity)
-            .expect("Bad tilemap entity")
-            .tile_size
-            .into();
-        let atlas_size = world.resource::<Assets<Image>>()
-            .get(&self.tilemap_texture)
-            .expect("Invalid texture handle")
-            .size();
+        let tile_size: Vec2 = match queries.tilemap_query.get(world, self.tilemap_entity) {
+            Ok(x) => x.tile_size.into(),
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            }),
+        };
+        let atlas_size = match world.resource::<Assets<Image>>().get(&self.tilemap_texture) {
+            Some(x) => x.size(),
+            None => return Message::ShowErrorAndExitEditing(EditorError::InvalidImageHandle {
+                handle: self.tilemap_texture.clone_weak(),
+            }),
+        };
 
         if ui.button("Exit").clicked() {
             return Message::ExitTilemapEditing;
@@ -298,13 +309,19 @@ impl StateData {
         painter.set_layer_id(egui::LayerId::background());
 
         // Fetch information about the tilemap and the cursor
+        // TODO consider introducing a user-friendly reaction to the absense of editor camera
         let Some(cam) = queries.camera_query.iter(world)
             .find(|x| x.is_active())
         else {
             return Message::None;
         };
-        let tilemap = queries.tilemap_query.get(world, self.tilemap_entity)
-            .expect("Invalid tilemap");
+        let tilemap = match queries.tilemap_query.get(world, self.tilemap_entity) {
+            Ok(x) => x,
+            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
+                tilemap_entity: self.tilemap_entity,
+                query_error,
+            }),
+        };
 
         // Compute the display rects
         let ref_points = cam.tilemap_points(viewport_rect, &tilemap);
@@ -329,7 +346,7 @@ impl StateData {
             Some(hovered_tile) => {
                 ui.label(format!("Pos: {} {}", hovered_tile.x, hovered_tile.y));
 
-                self.tools[self.current_tool].viewport_ui(
+                let res = self.tools[self.current_tool].viewport_ui(
                     &mut ToolContext::new(
                         world,
                         ref_points,
@@ -343,6 +360,16 @@ impl StateData {
                     ui,
                     &painter,
                 );
+
+                match res {
+                    Err(e @ EditorError::BadTilemapEntity { .. }) => {
+                        // TODO better error reporting (show in ui)
+                        error!("Error: {e}");
+
+                        return Message::ExitTilemapEditing
+                    },
+                    _ => (),
+                }
             },
             None => {
                 ui.label("Pos: out of bounds");

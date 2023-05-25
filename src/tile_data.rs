@@ -1,22 +1,22 @@
 use std::any::TypeId;
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 use bevy::ecs::world::EntityMut;
 use bevy::prelude::*;
 use bevy::reflect::Typed;
-use bevy::utils::HashMap;
 use bevy_ecs_tilemap::prelude::*;
 
 use crate::EditorError;
 
 #[derive(Default)]
-struct TileData {
-    components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
+pub(crate) struct TileData {
+    pub(crate) components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
 }
 
 #[derive(Default)]
 pub(crate) struct EditorTileDataInternal {
-    map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
+    pub (crate) map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
 }
 
 impl EditorTileDataInternal {

@@ -25,4 +25,12 @@ pub enum EditorError {
         #[source]
         query_error: QueryEntityError,
     },
+    #[error("The type {ty_name:?} doesn't implement `ReflectComponent`")]
+    TypeNotReflectComponent {
+        ty_name: String,
+    },
+    #[error("The type {ty_name:?} isn't registered")]
+    TypeNotRegistered {
+        ty_name: String,
+    },
 }

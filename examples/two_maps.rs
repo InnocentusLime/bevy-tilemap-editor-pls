@@ -3,8 +3,10 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{EditorPlugin, default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera}};
 use bevy_tilemap_editor_pls::{TilemapEditorPlugin, EditorTileDataRegistry};
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 enum FoodContainer {
+    #[default]
     Empty,
     Carrots,
     Corn,
@@ -15,12 +17,14 @@ enum FoodContainer {
     Strawberries,
 }
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 struct WoodAmount(u8);
 
 fn startup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    app_registry: Res<AppTypeRegistry>,
     mut controls: Query<&mut PanCamControls, With<EditorCamera>>,
 ) {
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
@@ -28,110 +32,130 @@ fn startup(
     let texture_handle: Handle<Image> = asset_server.load("pretty_tiles.png");
     let mut registry = EditorTileDataRegistry::new();
     // Wood tiles
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(164),
         WoodAmount(9),
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(165),
         WoodAmount(3),
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(166),
         WoodAmount(1),
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(166),
         WoodAmount(1),
     );
     // Box of cabbage
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(124),
         FoodContainer::Cabbage,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(140),
         FoodContainer::Cabbage,
     );
     // Box of zucchinies
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(125),
         FoodContainer::Zucchinies,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(141),
         FoodContainer::Zucchinies,
     );
     // Box of potatoes
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(125),
         FoodContainer::Potatoes,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(142),
         FoodContainer::Potatoes,
     );
     // Box of tomatoes
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(126),
         FoodContainer::Tomatoes,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(143),
         FoodContainer::Tomatoes,
     );
     // Box of strawberries
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(156),
         FoodContainer::Strawberries,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(172),
         FoodContainer::Strawberries,
     );
     // Box of strawberries
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(157),
         FoodContainer::Carrots,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(173),
         FoodContainer::Carrots,
     );
     // Box of nothing :)
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(158),
         FoodContainer::Empty,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(174),
         FoodContainer::Empty,
     );
     // Box of nothing :)
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(159),
         FoodContainer::Corn,
     );
-    registry.register(
+    registry.add_component(
+        &app_registry,
         TilemapTexture::Single(texture_handle.cast_weak()),
         TileTextureIndex(175),
         FoodContainer::Corn,

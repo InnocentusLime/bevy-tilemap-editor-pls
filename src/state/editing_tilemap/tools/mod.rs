@@ -84,13 +84,7 @@ impl<'w, 's> ToolContext<'w, 's> {
     pub fn despawn_tile(&mut self, pos: TilePos) -> Result<()> {
         let Some(tile_entity) = self.get_tile(pos)? else { return Ok(()); };
 
-        if !self.world.despawn(tile_entity) {
-            warn!(
-                "The tile entity ID was present at {pos:?} for tilemap {:?}, but it was an invalid entity ID",
-                self.tilemap_entity,
-            )
-        }
-
+        self.world.entity_mut(tile_entity).despawn_recursive();
         self.tilemap_query
             .get_mut(&mut self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {

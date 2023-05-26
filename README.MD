@@ -15,15 +15,12 @@ It is STRONGLY recommended to change the camera panning controls in `bevy_editor
 In addition, if you have some additional components, that you attach to the tiles, you can configure a resource that tells the editor what components it should insert
 
 ```rust
-    let mut registry = EditorTileDataRegistry::default();
-
-    registry.register(
-        TilemapTexture::Single(texture_handle),
-        TileTextureIndex(0),
-        (GrassHeight(10), GroundTag),
-    );
-
-    commands.insert_resource(registry);
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
+        TileTextureIndex(3),
+    )
+    .insert(GroundTag).unwrap();
 ```
 
 # Why use this?

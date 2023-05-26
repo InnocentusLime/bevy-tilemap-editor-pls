@@ -28,6 +28,7 @@ fn startup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     app_registry: Res<AppTypeRegistry>,
+    editor_registry: Res<EditorTileDataRegistry>,
     mut controls: Query<&mut PanCamControls, With<EditorCamera>>,
 ) {
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
@@ -37,10 +38,9 @@ fn startup(
     let map_size = TilemapSize { x: 32, y: 32 };
 
     // Setup custom data
-    let registry = EditorTileDataRegistry::new();
     let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(0)
@@ -48,7 +48,7 @@ fn startup(
     .insert(GrassHeight(10)).unwrap()
     .insert(GroundTag).unwrap();
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(1),
@@ -56,7 +56,7 @@ fn startup(
     .insert(WaterTag).unwrap()
     .insert(GrassHeight(5)).unwrap();
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(2),
@@ -64,14 +64,14 @@ fn startup(
     .insert(GroundTag).unwrap()
     .insert(GrassHeight(0)).unwrap();
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(3),
     )
     .insert(GroundTag).unwrap();
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(4),
@@ -79,7 +79,7 @@ fn startup(
     .insert(GroundTag).unwrap()
     .insert(HiddenMinerals::Coal).unwrap();
 
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(5),
@@ -92,7 +92,6 @@ fn startup(
     let map_type = TilemapType::default();
 
     commands.insert_resource(ClearColor(Color::BLACK));
-    commands.insert_resource(registry);
     commands.spawn(TilemapBundle {
         grid_size,
         map_type,

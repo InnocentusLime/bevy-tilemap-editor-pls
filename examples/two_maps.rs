@@ -25,28 +25,28 @@ fn startup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     app_registry: Res<AppTypeRegistry>,
+    editor_registry: Res<EditorTileDataRegistry>,
     mut controls: Query<&mut PanCamControls, With<EditorCamera>>,
 ) {
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
 
     let texture_handle: Handle<Image> = asset_server.load("pretty_tiles.png");
-    let registry = EditorTileDataRegistry::new();
     let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
 
     // Wood tiles
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(164),
     )
     .insert(WoodAmount(9)).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(165),
     )
     .insert(WoodAmount(3)).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(166),
@@ -54,13 +54,13 @@ fn startup(
     .insert(WoodAmount(1)).unwrap();
 
     // Box of cabbage
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(124),
     )
     .insert(FoodContainer::Cabbage).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(140),
@@ -68,13 +68,13 @@ fn startup(
     .insert(FoodContainer::Cabbage).unwrap();
 
     // Box of zucchinies
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(125),
     )
     .insert(FoodContainer::Zucchinies).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(141),
@@ -82,13 +82,13 @@ fn startup(
     .insert(FoodContainer::Zucchinies).unwrap();
 
     // Box of potatoes
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(125),
     )
     .insert(FoodContainer::Potatoes).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(142),
@@ -96,13 +96,13 @@ fn startup(
     .insert(FoodContainer::Potatoes).unwrap();
 
     // Box of tomatoes
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(126),
     )
     .insert(FoodContainer::Tomatoes).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(143),
@@ -110,13 +110,13 @@ fn startup(
     .insert(FoodContainer::Tomatoes).unwrap();
 
     // Box of strawberries
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(156),
     )
     .insert(FoodContainer::Strawberries).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(172),
@@ -124,13 +124,13 @@ fn startup(
     .insert(FoodContainer::Strawberries).unwrap();
 
     // Box of strawberries
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(157),
     )
     .insert(FoodContainer::Carrots).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(173),
@@ -138,13 +138,13 @@ fn startup(
     .insert(FoodContainer::Carrots).unwrap();
 
     // Box of nothing :)
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(158),
     )
     .insert(FoodContainer::Empty).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(174),
@@ -152,13 +152,13 @@ fn startup(
     .insert(FoodContainer::Empty).unwrap();
 
     // Box of nothing corn
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(159),
     )
     .insert(FoodContainer::Corn).unwrap();
-    registry.lock().edit_tile_data(
+    editor_registry.lock().edit_tile_data(
         &app_registry,
         tileset_info.clone(),
         TileTextureIndex(175),
@@ -172,7 +172,6 @@ fn startup(
     let map_type = TilemapType::default();
 
     commands.insert_resource(ClearColor(Color::BLACK));
-    commands.insert_resource(registry);
     commands.spawn((TilemapBundle {
         grid_size,
         map_type,

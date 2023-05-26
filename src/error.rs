@@ -27,10 +27,10 @@ pub enum EditorError {
     },
     #[error("The type {ty_name:?} doesn't implement `ReflectComponent`")]
     TypeNotReflectComponent {
-        ty_name: String,
+        ty_name: &'static str,
     },
     #[error("The type {ty_name:?} isn't registered")]
     TypeNotRegistered {
-        ty_name: String,
+        ty_name: &'static str,
     },
 }

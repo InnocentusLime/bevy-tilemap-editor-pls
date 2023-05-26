@@ -58,28 +58,56 @@ impl EditorTileDataRegistry {
         tile_id: TileTextureIndex,
         data: T,
     ) -> Result<&mut Self, EditorError> {
+        let (type_id, reflect_component) = Self::get_type_data::<T>(registry)?;
+
+        self.insert_component_data(
+            tileset_info,
+            tile_id,
+            data,
+            reflect_component,
+            type_id
+        );
+
+        Ok(self)
+    }
+
+    fn insert_component_data<T: Reflect + Typed>(
+        &mut self,
+        tileset_info: TilemapTexture,
+        tile_id: TileTextureIndex,
+        data: T,
+        reflect_component: ReflectComponent,
+        type_id: TypeId,
+    ) {
         let mut lock = self.inner.lock().unwrap();
-        let tileset_registry = lock.map.entry(tileset_info).or_default();
-        let tile_registry = tileset_registry.entry(tile_id.0).or_default();
+
+        lock.map
+            .entry(tileset_info)
+            .or_default()
+            .entry(tile_id.0)
+            .or_default()
+            .components
+            .insert(
+                type_id,
+                (reflect_component, Box::new(data))
+            );
+    }
+
+    fn get_type_data<T: Reflect + Typed>(registry: &AppTypeRegistry) -> Result<(TypeId, ReflectComponent), EditorError> {
+        let ty_name = <T as Typed>::type_info().type_name();
+        let type_id = TypeId::of::<T>();
 
         let registry_lock = registry.read();
-        let ty_registration = registry_lock.get(data.type_id())
+        let reflect_component = registry_lock.get(type_id)
             .ok_or(EditorError::TypeNotRegistered {
-                ty_name: data.type_name().to_string(),
-            })?;
-        let reflect_component = ty_registration.data::<ReflectComponent>()
+                ty_name,
+            })?
+            .data::<ReflectComponent>()
             .ok_or(EditorError::TypeNotReflectComponent {
-                ty_name: data.type_name().to_string(),
+                ty_name,
             })?
             .to_owned();
 
-        tile_registry.components.insert(
-            ty_registration.type_id(),
-            (reflect_component, Box::new(data))
-        );
-
-        std::mem::drop(lock);
-
-        Ok(self)
+        Ok((type_id, reflect_component))
     }
 }

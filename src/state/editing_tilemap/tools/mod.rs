@@ -325,16 +325,17 @@ impl<'w, 's> ToolContext<'w, 's> {
         tile_pos: TilePos,
     ) -> Result<()> {
         let Some((tile_entity, props)) = self.get_tile_properties(tile_pos)? else { return Ok(()) };
-        let mut tile_entity = self.world.entity_mut(tile_entity);
+        let tile_entity = self.world.entity(tile_entity);
 
         *self.brush_state = props;
         self.tile_data.iter_mut()
             .map(|x| x.entry(props.texture.0).or_default())
             .flat_map(|x| x.components.values_mut())
-            .for_each(|(reflect_component, value)| match reflect_component.reflect_mut(&mut tile_entity) {
-                None => (),
-                Some(new_value) => *value = new_value.clone_value(),
-            });
+            .filter_map(|(reflect_component, value)|
+                reflect_component.reflect(tile_entity)
+                .map(|new_value| (value, new_value))
+            )
+            .for_each(|(value, new_value)| value.apply(new_value));
 
         Ok(())
     }

@@ -8,7 +8,7 @@ mod picking_tilemap;
 
 enum Message {
     None,
-    ExitTilemapEditing,
+    StartPickingTilemap,
     EditTilemap(Entity),
     ShowErrorAndExitEditing(EditorError),
 }
@@ -44,7 +44,7 @@ impl EditorState {
     fn handle_message(&mut self, msg: Message, world: &mut World) {
         match msg {
             Message::None => (),
-            Message::ExitTilemapEditing => {
+            Message::StartPickingTilemap => {
                 let state = picking_tilemap::StateData::new(world, &mut self.shared);
 
                 self.state_switch(State::PickingTilemap(state), world)

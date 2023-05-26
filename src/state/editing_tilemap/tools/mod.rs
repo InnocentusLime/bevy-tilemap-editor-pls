@@ -42,7 +42,7 @@ pub struct ToolContext<'w, 's> {
     tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
     tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
     tile_data: Option<&'s mut HashMap<u32, TileData>>,
-    pub brush_state: &'s mut TileProperties,
+    brush_state: &'s mut TileProperties,
 }
 
 impl<'w, 's> ToolContext<'w, 's> {
@@ -320,31 +320,21 @@ impl<'w, 's> ToolContext<'w, 's> {
         }
     }
 
-    pub fn copy_tile_data(
+    pub fn copy_tile_properties(
         &mut self,
         tile_pos: TilePos,
     ) -> Result<()> {
-        let Some(tile_entity) = self.get_tile(tile_pos)? else { return Ok(()) };
-        let tile_id = self.tile_query.get_manual(
-            &self.world,
-            tile_entity
-        ).map_err(|query_error| EditorError::BadTileEntity {
-            tilemap_entity: self.tilemap_entity,
-            tile_pos,
-            tile_entity,
-            query_error,
-        })?
-        .texture.0;
-        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
-        let tile_data = tile_data.entry(tile_id).or_default();
+        let Some((tile_entity, props)) = self.get_tile_properties(tile_pos)? else { return Ok(()) };
         let mut tile_entity = self.world.entity_mut(tile_entity);
 
-        for (reflect_component, value) in tile_data.components.values_mut() {
-            let Some(val) = reflect_component.reflect_mut(&mut tile_entity) else { continue };
-            let new_value = val.clone_value();
-
-            *value = new_value;
-        }
+        *self.brush_state = props;
+        self.tile_data.iter_mut()
+            .map(|x| x.entry(props.texture.0).or_default())
+            .flat_map(|x| x.components.values_mut())
+            .for_each(|(reflect_component, value)| match reflect_component.reflect_mut(&mut tile_entity) {
+                None => (),
+                Some(new_value) => *value = new_value.clone_value(),
+            });
 
         Ok(())
     }

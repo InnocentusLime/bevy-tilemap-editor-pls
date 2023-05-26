@@ -225,7 +225,7 @@ impl StateData {
         };
 
         if ui.button("Exit").clicked() {
-            return Message::ExitTilemapEditing;
+            return Message::StartPickingTilemap;
         }
 
         ui.separator();
@@ -404,7 +404,7 @@ impl StateData {
                         // TODO better error reporting (show in ui)
                         error!("Error: {e}");
 
-                        return Message::ExitTilemapEditing
+                        return Message::StartPickingTilemap
                     },
                     _ => (),
                 }

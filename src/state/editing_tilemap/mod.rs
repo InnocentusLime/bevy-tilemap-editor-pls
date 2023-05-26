@@ -206,8 +206,8 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         let queries = shared.query_storage.queries(world);
-        let tile_data = world.resource::<EditorTileDataRegistry>().inner.clone();
-        let mut lock = tile_data.lock().unwrap();
+        let tile_data = world.resource::<EditorTileDataRegistry>().clone();
+        let mut lock = tile_data.lock();
 
         // Fetch some info about the tilemap and its atlas
         let (tile_size, texture) = match queries.tilemap_query.get(world, self.tilemap_entity) {
@@ -276,7 +276,7 @@ impl StateData {
         ui.separator();
 
         self.tile_props_ui(
-            lock.map.get_mut(&texture),
+            lock.access_tileset_data(texture),
             world,
             ui,
         );
@@ -304,11 +304,10 @@ impl StateData {
 
     fn tile_props_ui(
         &mut self,
-        mut tile_data: Option<&mut HashMap<u32, TileData>>,
+        tile_data: &mut HashMap<u32, TileData>,
         world: &mut World,
         ui: &mut egui::Ui,
     ) {
-        let Some(tile_data) = &mut tile_data else { return };
         let Some(tile_data) = tile_data.get_mut(&self.palette_state.texture.0) else { return };
 
         tile_data.values_mut().for_each(|value| {
@@ -327,8 +326,8 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         let mut queries = shared.query_storage.queries(world);
-        let tile_data = world.resource::<EditorTileDataRegistry>().inner.clone();
-        let mut lock = tile_data.lock().unwrap();
+        let tile_data = world.resource::<EditorTileDataRegistry>().clone();
+        let mut lock = tile_data.lock();
 
         // FIXME the clipping has been improved, but the frames
         // still paint themselves on top of other widgets
@@ -387,7 +386,7 @@ impl StateData {
                         self.tilemap_texture_egui,
                         &mut queries.tile_query,
                         &mut queries.tilemap_query,
-                        lock.map.get_mut(&tilemap.texture),
+                        lock.access_tileset_data(tilemap.texture.clone()),
                         &mut self.palette_state,
                     ),
                     hovered_tile.into(),

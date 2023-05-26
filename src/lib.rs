@@ -32,6 +32,7 @@ pub struct TilemapEditorPlugin;
 impl Plugin for TilemapEditorPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<EditorTileDataRegistry>()
             .add_editor_window::<TilemapEditorWindow>();
     }
 }

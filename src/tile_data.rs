@@ -55,12 +55,12 @@ impl TileData {
 
 #[derive(Default)]
 pub(crate) struct EditorTileDataInternal {
-    pub (crate) map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
+    map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
 }
 
-#[derive(Default, Resource)]
+#[derive(Default, Clone, Resource)]
 pub struct EditorTileDataRegistry {
-    pub(crate) inner: Arc<Mutex<EditorTileDataInternal>>,
+    inner: Arc<Mutex<EditorTileDataInternal>>,
 }
 
 impl EditorTileDataRegistry {
@@ -76,6 +76,15 @@ impl EditorTileDataRegistry {
 pub struct EditorTileDataRegistryLock<'a>(MutexGuard<'a, EditorTileDataInternal>);
 
 impl<'a> EditorTileDataRegistryLock<'a> {
+    pub(crate) fn access_tileset_data(
+        &'_ mut self,
+        tileset_info: TilemapTexture,
+    ) -> &'_ mut HashMap<u32, TileData> {
+        self.0.map
+            .entry(tileset_info)
+            .or_default()
+    }
+
     pub fn edit_tile_data<'b>(
         &'b mut self,
         registry: &'b AppTypeRegistry,
@@ -83,9 +92,7 @@ impl<'a> EditorTileDataRegistryLock<'a> {
         tile_id: TileTextureIndex,
     ) -> TileDataAccess<'b> {
         TileDataAccess(
-            self.0.map
-                .entry(tileset_info)
-                .or_default()
+            self.access_tileset_data(tileset_info)
                 .entry(tile_id.0)
                 .or_default(),
             registry

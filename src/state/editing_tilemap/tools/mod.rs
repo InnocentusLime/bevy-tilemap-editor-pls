@@ -41,7 +41,7 @@ pub struct ToolContext<'w, 's> {
     tilemap_texture_egui: egui::TextureId,
     tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
     tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
-    tile_data: Option<&'s mut HashMap<u32, TileData>>,
+    tile_data: &'s mut HashMap<u32, TileData>,
     brush_state: &'s mut TileProperties,
 }
 
@@ -53,7 +53,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         tilemap_texture_egui: egui::TextureId,
         tile_query: &'s mut QueryState<TilePropertyQuery, ()>,
         tilemap_query: &'s mut QueryState<TilemapQuery, ()>,
-        tile_data: Option<&'s mut HashMap<u32, TileData>>,
+        tile_data: &'s mut HashMap<u32, TileData>,
         brush_state: &'s mut TileProperties,
     ) -> Self {
         Self {
@@ -143,15 +143,14 @@ impl<'w, 's> ToolContext<'w, 's> {
         *props_item.texture = props.texture;
 
         let mut tile_entity_mut = self.world.entity_mut(tile_entity);
-        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
 
         if old_tile_texture.0 != new_tile_texture.0 {
-            if let Some(old_data) = tile_data.get(&old_tile_texture.0) {
+            if let Some(old_data) = self.tile_data.get(&old_tile_texture.0) {
                 old_data.remove(&mut tile_entity_mut);
             }
         }
 
-        if let Some(new_data) = tile_data.get(&new_tile_texture.0) {
+        if let Some(new_data) = self.tile_data.get(&new_tile_texture.0) {
             new_data.insert(&mut tile_entity_mut);
         }
 
@@ -328,8 +327,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         let tile_entity = self.world.entity(tile_entity);
 
         *self.brush_state = props;
-        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
-        let Some(tile_data) = tile_data.get_mut(&props.texture.0) else { return Ok(()) };
+        let Some(tile_data) = self.tile_data.get_mut(&props.texture.0) else { return Ok(()) };
 
         tile_data.apply(tile_entity);
 

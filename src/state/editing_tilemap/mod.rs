@@ -311,15 +311,11 @@ impl StateData {
         let Some(tile_data) = &mut tile_data else { return };
         let Some(tile_data) = tile_data.get_mut(&self.palette_state.texture.0) else { return };
 
-        tile_data.components.values_mut().for_each(|(_, value)| {
+        tile_data.values_mut().for_each(|value| {
             let heading = value.type_name();
 
             ui.collapsing(heading.to_string(), |ui| {
-                bevy_inspector_egui::bevy_inspector::ui_for_value(
-                    value.as_mut(),
-                    ui,
-                    world,
-                );
+                bevy_inspector_egui::bevy_inspector::ui_for_value(value, ui, world);
             });
         });
     }

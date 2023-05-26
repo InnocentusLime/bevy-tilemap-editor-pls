@@ -11,7 +11,7 @@ use crate::EditorError;
 
 #[derive(Default)]
 pub(crate) struct TileData {
-    pub(crate) components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
+    components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
 }
 
 impl TileData {
@@ -46,6 +46,10 @@ impl TileData {
             .for_each(|(refl, _)| {
                 refl.remove(entity)
             })
+    }
+
+    pub fn values_mut(&'_ mut self) -> impl Iterator<Item = &'_ mut dyn Reflect> {
+        self.components.values_mut().map(|x| x.1.as_mut())
     }
 }
 

@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::{egui_dock, egui};
 use bevy_egui::EguiUserTextures;
 
-use crate::coord_utils::{bevy_to_egui, gridify_int};
+use crate::{coord_utils::{bevy_to_egui, gridify_int}, EditorTileDataRegistry, tile_data::TileData};
 
 use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
 
@@ -204,10 +206,12 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         let queries = shared.query_storage.queries(world);
+        let tile_data = world.resource::<EditorTileDataRegistry>().clone();
+        let mut lock = tile_data.lock();
 
         // Fetch some info about the tilemap and its atlas
-        let tile_size: Vec2 = match queries.tilemap_query.get(world, self.tilemap_entity) {
-            Ok(x) => x.tile_size.into(),
+        let (tile_size, texture) = match queries.tilemap_query.get(world, self.tilemap_entity) {
+            Ok(x) => (x.tile_size.into(), x.texture.clone()),
             Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -221,7 +225,7 @@ impl StateData {
         };
 
         if ui.button("Exit").clicked() {
-            return Message::ExitTilemapEditing;
+            return Message::StartPickingTilemap;
         }
 
         ui.separator();
@@ -268,6 +272,15 @@ impl StateData {
             tile_rgba[3],
         );
 
+
+        ui.separator();
+
+        self.tile_props_ui(
+            lock.access_tileset_data(texture),
+            world,
+            ui,
+        );
+
         // TODO make the keys configurable
         if ui.input(|x| x.key_pressed(egui::Key::H)) {
             self.palette_state.flip.x = !self.palette_state.flip.x;
@@ -289,6 +302,23 @@ impl StateData {
         Message::None
     }
 
+    fn tile_props_ui(
+        &mut self,
+        tile_data: &mut HashMap<u32, TileData>,
+        world: &mut World,
+        ui: &mut egui::Ui,
+    ) {
+        let Some(tile_data) = tile_data.get_mut(&self.palette_state.texture.0) else { return };
+
+        tile_data.values_mut().for_each(|value| {
+            let heading = value.type_name();
+
+            ui.collapsing(heading.to_string(), |ui| {
+                bevy_inspector_egui::bevy_inspector::ui_for_value(value, ui, world);
+            });
+        });
+    }
+
     pub fn viewport_ui(
         &mut self,
         shared: &mut SharedStateData,
@@ -296,6 +326,8 @@ impl StateData {
         ui: &mut egui::Ui,
     ) -> Message {
         let mut queries = shared.query_storage.queries(world);
+        let tile_data = world.resource::<EditorTileDataRegistry>().clone();
+        let mut lock = tile_data.lock();
 
         // FIXME the clipping has been improved, but the frames
         // still paint themselves on top of other widgets
@@ -354,6 +386,7 @@ impl StateData {
                         self.tilemap_texture_egui,
                         &mut queries.tile_query,
                         &mut queries.tilemap_query,
+                        lock.access_tileset_data(tilemap.texture.clone()),
                         &mut self.palette_state,
                     ),
                     hovered_tile.into(),
@@ -366,7 +399,7 @@ impl StateData {
                         // TODO better error reporting (show in ui)
                         error!("Error: {e}");
 
-                        return Message::ExitTilemapEditing
+                        return Message::StartPickingTilemap
                     },
                     _ => (),
                 }

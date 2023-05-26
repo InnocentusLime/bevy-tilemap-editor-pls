@@ -26,9 +26,7 @@ impl Tool for TilePicker {
         );
 
         if ui.input(|x| x.pointer.button_down(egui::PointerButton::Primary)) {
-            if let Some((_, props)) = ctx.get_tile_properties(hovered_tile)? {
-                *ctx.brush_state = props;
-            }
+            ctx.copy_tile_properties(hovered_tile)?;
         }
 
         Ok(())

@@ -4,24 +4,31 @@ use bevy_editor_pls::{EditorPlugin, default_windows::cameras::{camera_2d_panzoom
 use bevy_tilemap_editor_pls::{TilemapEditorPlugin, EditorTileDataRegistry};
 
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 struct WaterTag;
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 struct GrassHeight(u32);
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 struct GroundTag;
 
-#[derive(Component, Clone, Copy, Reflect)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 enum HiddenMinerals {
     Diamonds,
+    #[default]
     Coal,
 }
 
 fn startup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    app_registry: Res<AppTypeRegistry>,
+    editor_registry: Res<EditorTileDataRegistry>,
     mut controls: Query<&mut PanCamControls, With<EditorCamera>>,
 ) {
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
@@ -31,49 +38,60 @@ fn startup(
     let map_size = TilemapSize { x: 32, y: 32 };
 
     // Setup custom data
-    let mut registry = EditorTileDataRegistry::new();
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(0),
-        (GrassHeight(10), GroundTag),
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
+    let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
+        TileTextureIndex(0)
+    )
+    .insert(GrassHeight(10)).unwrap()
+    .insert(GroundTag).unwrap();
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
         TileTextureIndex(1),
-        WaterTag,
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
+    )
+    .insert(WaterTag).unwrap()
+    .insert(GrassHeight(5)).unwrap();
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
         TileTextureIndex(2),
-        (GrassHeight(5), GroundTag),
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
+    )
+    .insert(GroundTag).unwrap()
+    .insert(GrassHeight(0)).unwrap();
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
         TileTextureIndex(3),
-        (GrassHeight(0), GroundTag),
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
+    )
+    .insert(GroundTag).unwrap();
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
         TileTextureIndex(4),
-        (GroundTag, HiddenMinerals::Coal),
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
+    )
+    .insert(GroundTag).unwrap()
+    .insert(HiddenMinerals::Coal).unwrap();
+
+    editor_registry.lock().edit_tile_data(
+        &app_registry,
+        tileset_info.clone(),
         TileTextureIndex(5),
-        (GroundTag, HiddenMinerals::Diamonds),
-    );
-    registry.register(
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(5),
-        GroundTag,
-    );
+    )
+    .insert(GroundTag).unwrap()
+    .insert(HiddenMinerals::Diamonds).unwrap();
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 
     commands.insert_resource(ClearColor(Color::BLACK));
-    commands.insert_resource(registry);
     commands.spawn(TilemapBundle {
         grid_size,
         map_type,

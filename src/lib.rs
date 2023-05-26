@@ -5,7 +5,9 @@ mod state;
 mod queries;
 mod tile_data;
 mod coord_utils;
+mod error;
 
+pub use error::EditorError;
 pub use state::EditorState;
 pub use tile_data::EditorTileDataRegistry;
 
@@ -30,6 +32,7 @@ pub struct TilemapEditorPlugin;
 impl Plugin for TilemapEditorPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<EditorTileDataRegistry>()
             .add_editor_window::<TilemapEditorWindow>();
     }
 }

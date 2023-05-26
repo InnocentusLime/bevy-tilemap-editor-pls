@@ -1,66 +1,66 @@
-use std::sync::{Arc, Mutex};
+use std::any::TypeId;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::collections::HashMap;
 
-use bevy::ecs::world::EntityMut;
+use bevy::ecs::world::{EntityMut, EntityRef};
 use bevy::prelude::*;
-use bevy::utils::HashMap;
+use bevy::reflect::Typed;
 use bevy_ecs_tilemap::prelude::*;
 
-trait TileData: Send + Sync {
-    fn insert(&self, cmds: &mut EntityMut);
+use crate::EditorError;
 
-    fn remove(&self, cmds: &mut EntityMut);
+#[derive(Default)]
+pub(crate) struct TileData {
+    components: HashMap<TypeId, (ReflectComponent, Box<dyn Reflect>)>,
 }
 
-struct BundledTileData<B>(B);
+impl TileData {
+    pub fn apply(
+        &mut self,
+        src: EntityRef,
+    ) {
+        self.components.values_mut()
+            .filter_map(|(refl, value)|
+                refl.reflect(src)
+                .map(|new_value| (value, new_value))
+            )
+            .for_each(|(value, new_value)| value.apply(new_value))
 
-impl<B: Bundle + Clone> TileData for BundledTileData<B> {
-    fn insert(&self, ent: &mut EntityMut) {
-        ent.insert(self.0.clone());
     }
 
-    fn remove(&self, ent: &mut EntityMut) {
-        ent.remove::<B>();
+    pub fn insert(
+        &self,
+        entity: &mut EntityMut,
+    ) {
+        self.components.values()
+            .for_each(|(refl, component)| {
+                refl.insert(entity, component.as_ref())
+            })
+    }
+
+    pub fn remove(
+        &self,
+        entity: &mut EntityMut,
+    ) {
+        self.components.values()
+            .for_each(|(refl, _)| {
+                refl.remove(entity)
+            })
+    }
+
+    pub fn values_mut(&'_ mut self) -> impl Iterator<Item = &'_ mut dyn Reflect> {
+        self.components.values_mut().map(|x| x.1.as_mut())
     }
 }
 
 #[derive(Default)]
 pub(crate) struct EditorTileDataInternal {
-    map: HashMap<TilemapTexture, HashMap<u32, Box<dyn TileData>>>,
+    map: HashMap<TilemapTexture, HashMap<u32, TileData>>,
 }
 
-impl EditorTileDataInternal {
-    pub fn insert(
-        &self,
-        tileset_info: &TilemapTexture,
-        tile_id: &TileTextureIndex,
-        ent: &mut EntityMut,
-    ) {
-        let data = self.map.get(tileset_info)
-            .and_then(|x| x.get(&tile_id.0));
-
-        if let Some(data) = data {
-            data.insert(ent);
-        }
-    }
-
-    pub fn remove(
-        &self,
-        tileset_info: &TilemapTexture,
-        tile_id: &TileTextureIndex,
-        ent: &mut EntityMut,
-    ) {
-        let data = self.map.get(tileset_info)
-            .and_then(|x| x.get(&tile_id.0));
-
-        if let Some(data) = data {
-            data.remove(ent);
-        }
-    }
-}
-
-#[derive(Default, Resource)]
+#[derive(Default, Clone, Resource)]
 pub struct EditorTileDataRegistry {
-    pub(crate) inner: Arc<Mutex<EditorTileDataInternal>>,
+    inner: Arc<Mutex<EditorTileDataInternal>>,
 }
 
 impl EditorTileDataRegistry {
@@ -68,13 +68,81 @@ impl EditorTileDataRegistry {
         Self::default()
     }
 
-    pub fn register<B: Bundle + Clone>(
-        &mut self,
+    pub fn lock(&self) -> EditorTileDataRegistryLock {
+        EditorTileDataRegistryLock(self.inner.lock().unwrap())
+    }
+}
+
+pub struct EditorTileDataRegistryLock<'a>(MutexGuard<'a, EditorTileDataInternal>);
+
+impl<'a> EditorTileDataRegistryLock<'a> {
+    pub(crate) fn access_tileset_data(
+        &'_ mut self,
+        tileset_info: TilemapTexture,
+    ) -> &'_ mut HashMap<u32, TileData> {
+        self.0.map
+            .entry(tileset_info)
+            .or_default()
+    }
+
+    pub fn edit_tile_data<'b>(
+        &'b mut self,
+        registry: &'b AppTypeRegistry,
         tileset_info: TilemapTexture,
         tile_id: TileTextureIndex,
-        dat: B,
-    ) {
-        self.inner.lock().unwrap().map.entry(tileset_info).or_default()
-            .insert(tile_id.0, Box::new(BundledTileData(dat)));
+    ) -> TileDataAccess<'b> {
+        TileDataAccess(
+            self.access_tileset_data(tileset_info)
+                .entry(tile_id.0)
+                .or_default(),
+            registry
+        )
+    }
+}
+
+pub struct TileDataAccess<'a>(
+    &'a mut TileData,
+    &'a AppTypeRegistry,
+);
+
+impl<'a> TileDataAccess<'a> {
+    pub fn remove<T: Reflect + Typed>(
+        &mut self
+    ) -> &mut Self {
+        self.0.components.remove(&TypeId::of::<T>());
+
+        self
+    }
+
+    pub fn insert<T: Reflect + Typed>(
+        &mut self,
+        data: T,
+    ) -> Result<&mut Self, EditorError> {
+        let (type_id, reflect_component) = Self::get_type_data::<T>(self.1)?;
+
+        self.0.components.insert(
+            type_id,
+            (reflect_component, Box::new(data))
+        );
+
+        Ok(self)
+    }
+
+    fn get_type_data<T: Reflect + Typed>(registry: &AppTypeRegistry) -> Result<(TypeId, ReflectComponent), EditorError> {
+        let ty_name = <T as Typed>::type_info().type_name();
+        let type_id = TypeId::of::<T>();
+
+        let registry_lock = registry.read();
+        let reflect_component = registry_lock.get(type_id)
+            .ok_or(EditorError::TypeNotRegistered {
+                ty_name,
+            })?
+            .data::<ReflectComponent>()
+            .ok_or(EditorError::TypeNotReflectComponent {
+                ty_name,
+            })?
+            .to_owned();
+
+        Ok((type_id, reflect_component))
     }
 }

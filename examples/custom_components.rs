@@ -37,79 +37,55 @@ fn startup(
     let map_size = TilemapSize { x: 32, y: 32 };
 
     // Setup custom data
-    let mut registry = EditorTileDataRegistry::new();
-    registry.add_component(
+    let registry = EditorTileDataRegistry::new();
+    let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(0),
-        GrassHeight(10),
-    ).unwrap();
-    registry.add_component(
+        tileset_info.clone(),
+        TileTextureIndex(0)
+    )
+    .insert(GrassHeight(10)).unwrap()
+    .insert(GroundTag).unwrap();
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(0),
-        GroundTag,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(1),
-        WaterTag,
-    ).unwrap();
-    registry.add_component(
+    )
+    .insert(WaterTag).unwrap()
+    .insert(GrassHeight(5)).unwrap();
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(2),
-        GrassHeight(5),
-    ).unwrap();
-    registry.add_component(
+    )
+    .insert(GroundTag).unwrap()
+    .insert(GrassHeight(0)).unwrap();
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(2),
-        GroundTag,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(3),
-        GrassHeight(0),
-    ).unwrap();
-    registry.add_component(
+    )
+    .insert(GroundTag).unwrap();
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(3),
-        GroundTag,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(4),
-        GroundTag,
-    ).unwrap();
-    registry.add_component(
+    )
+    .insert(GroundTag).unwrap()
+    .insert(HiddenMinerals::Coal).unwrap();
+
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(4),
-        HiddenMinerals::Coal,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(5),
-        GroundTag,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(5),
-        HiddenMinerals::Diamonds,
-    ).unwrap();
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(5),
-        GroundTag,
-    ).unwrap();
+    )
+    .insert(GroundTag).unwrap()
+    .insert(HiddenMinerals::Diamonds).unwrap();
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
     let grid_size = tile_size.into();

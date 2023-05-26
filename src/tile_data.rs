@@ -1,8 +1,8 @@
 use std::any::TypeId;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
 
-use bevy::ecs::world::EntityMut;
+use bevy::ecs::world::{EntityMut, EntityRef};
 use bevy::prelude::*;
 use bevy::reflect::Typed;
 use bevy_ecs_tilemap::prelude::*;
@@ -15,6 +15,19 @@ pub(crate) struct TileData {
 }
 
 impl TileData {
+    pub fn apply(
+        &mut self,
+        src: EntityRef,
+    ) {
+        self.components.values_mut()
+            .filter_map(|(refl, value)|
+                refl.reflect(src)
+                .map(|new_value| (value, new_value))
+            )
+            .for_each(|(value, new_value)| value.apply(new_value))
+
+    }
+
     pub fn insert(
         &self,
         entity: &mut EntityMut,
@@ -51,46 +64,57 @@ impl EditorTileDataRegistry {
         Self::default()
     }
 
-    pub fn add_component<T: Reflect + Typed>(
-        &mut self,
-        registry: &AppTypeRegistry,
+    pub fn lock(&self) -> EditorTileDataRegistryLock {
+        EditorTileDataRegistryLock(self.inner.lock().unwrap())
+    }
+}
+
+pub struct EditorTileDataRegistryLock<'a>(MutexGuard<'a, EditorTileDataInternal>);
+
+impl<'a> EditorTileDataRegistryLock<'a> {
+    pub fn edit_tile_data<'b>(
+        &'b mut self,
+        registry: &'b AppTypeRegistry,
         tileset_info: TilemapTexture,
         tile_id: TileTextureIndex,
+    ) -> TileDataAccess<'b> {
+        TileDataAccess(
+            self.0.map
+                .entry(tileset_info)
+                .or_default()
+                .entry(tile_id.0)
+                .or_default(),
+            registry
+        )
+    }
+}
+
+pub struct TileDataAccess<'a>(
+    &'a mut TileData,
+    &'a AppTypeRegistry,
+);
+
+impl<'a> TileDataAccess<'a> {
+    pub fn remove<T: Reflect + Typed>(
+        &mut self
+    ) -> &mut Self {
+        self.0.components.remove(&TypeId::of::<T>());
+
+        self
+    }
+
+    pub fn insert<T: Reflect + Typed>(
+        &mut self,
         data: T,
     ) -> Result<&mut Self, EditorError> {
-        let (type_id, reflect_component) = Self::get_type_data::<T>(registry)?;
+        let (type_id, reflect_component) = Self::get_type_data::<T>(self.1)?;
 
-        self.insert_component_data(
-            tileset_info,
-            tile_id,
-            data,
-            reflect_component,
-            type_id
+        self.0.components.insert(
+            type_id,
+            (reflect_component, Box::new(data))
         );
 
         Ok(self)
-    }
-
-    fn insert_component_data<T: Reflect + Typed>(
-        &mut self,
-        tileset_info: TilemapTexture,
-        tile_id: TileTextureIndex,
-        data: T,
-        reflect_component: ReflectComponent,
-        type_id: TypeId,
-    ) {
-        let mut lock = self.inner.lock().unwrap();
-
-        lock.map
-            .entry(tileset_info)
-            .or_default()
-            .entry(tile_id.0)
-            .or_default()
-            .components
-            .insert(
-                type_id,
-                (reflect_component, Box::new(data))
-            );
     }
 
     fn get_type_data<T: Reflect + Typed>(registry: &AppTypeRegistry) -> Result<(TypeId, ReflectComponent), EditorError> {

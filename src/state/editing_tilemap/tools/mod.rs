@@ -328,14 +328,10 @@ impl<'w, 's> ToolContext<'w, 's> {
         let tile_entity = self.world.entity(tile_entity);
 
         *self.brush_state = props;
-        self.tile_data.iter_mut()
-            .map(|x| x.entry(props.texture.0).or_default())
-            .flat_map(|x| x.components.values_mut())
-            .filter_map(|(reflect_component, value)|
-                reflect_component.reflect(tile_entity)
-                .map(|new_value| (value, new_value))
-            )
-            .for_each(|(value, new_value)| value.apply(new_value));
+        let Some(tile_data) = &mut self.tile_data else { return Ok(()) };
+        let Some(tile_data) = tile_data.get_mut(&props.texture.0) else { return Ok(()) };
+
+        tile_data.apply(tile_entity);
 
         Ok(())
     }

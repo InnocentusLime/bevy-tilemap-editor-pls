@@ -30,136 +30,140 @@ fn startup(
     controls.single_mut().grab_buttons = vec![MouseButton::Middle];
 
     let texture_handle: Handle<Image> = asset_server.load("pretty_tiles.png");
-    let mut registry = EditorTileDataRegistry::new();
+    let registry = EditorTileDataRegistry::new();
+    let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
+
     // Wood tiles
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(164),
-        WoodAmount(9),
-    );
-    registry.add_component(
+    )
+    .insert(WoodAmount(9)).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(165),
-        WoodAmount(3),
-    );
-    registry.add_component(
+    )
+    .insert(WoodAmount(3)).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(166),
-        WoodAmount(1),
-    );
-    registry.add_component(
-        &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
-        TileTextureIndex(166),
-        WoodAmount(1),
-    );
+    )
+    .insert(WoodAmount(1)).unwrap();
+
     // Box of cabbage
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(124),
-        FoodContainer::Cabbage,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Cabbage).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(140),
-        FoodContainer::Cabbage,
-    );
+    )
+    .insert(FoodContainer::Cabbage).unwrap();
+
     // Box of zucchinies
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(125),
-        FoodContainer::Zucchinies,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Zucchinies).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(141),
-        FoodContainer::Zucchinies,
-    );
+    )
+    .insert(FoodContainer::Zucchinies).unwrap();
+
     // Box of potatoes
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(125),
-        FoodContainer::Potatoes,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Potatoes).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(142),
-        FoodContainer::Potatoes,
-    );
+    )
+    .insert(FoodContainer::Potatoes).unwrap();
+
     // Box of tomatoes
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(126),
-        FoodContainer::Tomatoes,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Tomatoes).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(143),
-        FoodContainer::Tomatoes,
-    );
+    )
+    .insert(FoodContainer::Tomatoes).unwrap();
+
     // Box of strawberries
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(156),
-        FoodContainer::Strawberries,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Strawberries).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(172),
-        FoodContainer::Strawberries,
-    );
+    )
+    .insert(FoodContainer::Strawberries).unwrap();
+
     // Box of strawberries
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(157),
-        FoodContainer::Carrots,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Carrots).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(173),
-        FoodContainer::Carrots,
-    );
+    )
+    .insert(FoodContainer::Carrots).unwrap();
+
     // Box of nothing :)
-    registry.add_component(
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(158),
-        FoodContainer::Empty,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Empty).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(174),
-        FoodContainer::Empty,
-    );
-    // Box of nothing :)
-    registry.add_component(
+    )
+    .insert(FoodContainer::Empty).unwrap();
+
+    // Box of nothing corn
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(159),
-        FoodContainer::Corn,
-    );
-    registry.add_component(
+    )
+    .insert(FoodContainer::Corn).unwrap();
+    registry.lock().edit_tile_data(
         &app_registry,
-        TilemapTexture::Single(texture_handle.cast_weak()),
+        tileset_info.clone(),
         TileTextureIndex(175),
-        FoodContainer::Corn,
-    );
+    )
+    .insert(FoodContainer::Corn).unwrap();
 
     let map_size = TilemapSize { x: 64, y: 64 };
 

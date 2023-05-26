@@ -28,11 +28,7 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    fn state_switch(
-        &mut self,
-        state: State,
-        world: &mut World,
-    ) {
+    fn state_switch(&mut self, state: State, world: &mut World) {
         let old = std::mem::replace(&mut self.state, state);
 
         match old {
@@ -48,20 +44,20 @@ impl EditorState {
                 let state = picking_tilemap::StateData::new(world, &mut self.shared);
 
                 self.state_switch(State::PickingTilemap(state), world)
-            },
+            }
             Message::EditTilemap(e) => {
                 match editing_tilemap::StateData::new(e, world, &mut self.shared) {
-                    Ok(state) =>  self.state_switch(State::Editing(state), world),
+                    Ok(state) => self.state_switch(State::Editing(state), world),
                     Err(e) => error!("Error: {e}"),
                 }
-            },
+            }
             // TODO show in the ui
             Message::ShowErrorAndExitEditing(err) => {
                 let state = picking_tilemap::StateData::new(world, &mut self.shared);
 
                 error!("The editor has closed due to the following error: {err}");
                 self.state_switch(State::PickingTilemap(state), world)
-            },
+            }
         }
     }
 
@@ -90,7 +86,7 @@ impl Default for EditorState {
             shared: SharedStateData {
                 query_storage: EditorQueryStorage::new(),
             },
-            state: State::PickingTilemap(picking_tilemap::StateData::empty())
+            state: State::PickingTilemap(picking_tilemap::StateData::empty()),
         }
     }
 }

@@ -2,28 +2,20 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_editor_pls::egui;
 
-use super::{ SharedStateData, Message };
+use super::{Message, SharedStateData};
 
-pub(super) struct StateData {
-
-}
+pub(super) struct StateData {}
 
 impl StateData {
     pub fn empty() -> Self {
         Self {}
     }
 
-    pub fn new(
-        _world: &mut World,
-        _shared_data: &mut SharedStateData,
-    ) -> Self {
-        StateData {  }
+    pub fn new(_world: &mut World, _shared_data: &mut SharedStateData) -> Self {
+        StateData {}
     }
 
-    pub fn cleanup(
-        self,
-        _world: &mut World,
-    ) {}
+    pub fn cleanup(self, _world: &mut World) {}
 
     pub fn ui(
         &mut self,
@@ -34,12 +26,14 @@ impl StateData {
         let queries = shared.query_storage.queries(world);
 
         // TODO make naming more user-friendly
-        let pick = queries.tilemap_query.iter(world)
+        let pick = queries
+            .tilemap_query
+            .iter(world)
             .filter(|tilemap| matches!(tilemap.ty, TilemapType::Square)) // Ignore non-square tilemaps
             .find(|tilemap| ui.button(self.name_tilemap(tilemap.name)).clicked());
 
         if let Some(tilemap) = pick {
-            return Message::EditTilemap(tilemap.entity)
+            return Message::EditTilemap(tilemap.entity);
         }
 
         Message::None

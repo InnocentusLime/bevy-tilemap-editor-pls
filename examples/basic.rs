@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::{EditorPlugin, default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera}};
+use bevy_editor_pls::{
+    default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera},
+    EditorPlugin,
+};
 use bevy_tilemap_editor_pls::TilemapEditorPlugin;
 
 fn startup(

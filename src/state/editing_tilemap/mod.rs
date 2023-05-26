@@ -2,29 +2,30 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::{egui_dock, egui};
+use bevy_editor_pls::{egui, egui_dock};
 use bevy_egui::EguiUserTextures;
 
-use crate::{coord_utils::{bevy_to_egui, gridify_int}, EditorTileDataRegistry, tile_data::TileData};
+use crate::{
+    coord_utils::{bevy_to_egui, gridify_int},
+    tile_data::TileData,
+    EditorTileDataRegistry,
+};
 
-use self::{tools::{Tool, TileProperties, TilePainter, TileEraser, TileWhoIs, TilePicker, ToolContext}, palette::TilePalette};
+use self::{
+    palette::TilePalette,
+    tools::{TileEraser, TilePainter, TilePicker, TileProperties, TileWhoIs, Tool, ToolContext},
+};
 
-use super::{ SharedStateData, Message, EditorError };
+use super::{EditorError, Message, SharedStateData};
 
 mod palette;
 mod tools;
 
 // The y component is computed differently, so the higher you go,
 // the bigger y component of the result gets.
-fn global_pos_to_local(
-    pos: egui::Pos2,
-    tilemap_rect: egui::Rect,
-) -> Option<egui::Pos2> {
+fn global_pos_to_local(pos: egui::Pos2, tilemap_rect: egui::Rect) -> Option<egui::Pos2> {
     let tilemap_size = tilemap_rect.size();
-    let pos = egui::pos2(
-        pos.x - tilemap_rect.min.x,
-        tilemap_rect.max.y - pos.y,
-    );
+    let pos = egui::pos2(pos.x - tilemap_rect.min.x, tilemap_rect.max.y - pos.y);
 
     if pos.x <= 0.0 || pos.y <= 0.0 || pos.x >= tilemap_size.x || pos.y >= tilemap_size.y {
         return None;
@@ -75,9 +76,7 @@ mod flip_rotation {
     // 0 x d y 0 0 0
     #[inline]
     fn flip_to_internal(flip: TileFlip) -> u8 {
-        (flip.x as u8) << 3 |
-        (flip.d as u8) << 2 |
-        (flip.y as u8) << 1
+        (flip.x as u8) << 3 | (flip.d as u8) << 2 | (flip.y as u8) << 1
     }
 
     #[inline]
@@ -102,18 +101,26 @@ mod flip_rotation {
     fn seq_lshift(x: u8) -> u8 {
         let shifted = x << 1;
 
-        if x == 0b111_0 { 0b001_0 }
-        else if shifted & 0b1_000_0 == 0b1_000_0 { 0b111_0 }
-        else { shifted }
+        if x == 0b111_0 {
+            0b001_0
+        } else if shifted & 0b1_000_0 == 0b1_000_0 {
+            0b111_0
+        } else {
+            shifted
+        }
     }
 
     #[inline]
     fn seq_rshift(x: u8) -> u8 {
         let shifted = x >> 1;
 
-        if x == 0b111_0 { 0b100_0 }
-        else if shifted & 0b000_1 == 0b000_1 { 0b111_0 }
-        else { shifted }
+        if x == 0b111_0 {
+            0b100_0
+        } else if shifted & 0b000_1 == 0b000_1 {
+            0b111_0
+        } else {
+            shifted
+        }
     }
 
     pub fn rotate_plus_90(flip: &mut TileFlip) {
@@ -156,7 +163,8 @@ impl StateData {
         // Extract the atlas image and register it
         // FIXME this solution supports only single-image atlases
         // TODO do more tilemap diagnostics
-        let texture = queries.tilemap_query
+        let texture = queries
+            .tilemap_query
             .get(world, tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity,
@@ -170,8 +178,14 @@ impl StateData {
                 world.resource_mut::<EguiUserTextures>().add_image(x),
             ),
             // FIXME needs careful tweaking due to "atlas feature"
-            TilemapTexture::Vector(_) => return Err(EditorError::UnsupportedTilemapTextureType("Vector")),
-            TilemapTexture::TextureContainer(_) => return Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
+            TilemapTexture::Vector(_) => {
+                return Err(EditorError::UnsupportedTilemapTextureType("Vector"))
+            }
+            TilemapTexture::TextureContainer(_) => {
+                return Err(EditorError::UnsupportedTilemapTextureType(
+                    "TextureContainer",
+                ))
+            }
         };
 
         Ok(Self {
@@ -192,11 +206,10 @@ impl StateData {
         })
     }
 
-    pub fn cleanup(
-        self,
-        world: &mut World,
-    ) {
-        world.resource_mut::<EguiUserTextures>().remove_image(&self.tilemap_texture);
+    pub fn cleanup(self, world: &mut World) {
+        world
+            .resource_mut::<EguiUserTextures>()
+            .remove_image(&self.tilemap_texture);
     }
 
     pub fn ui(
@@ -212,16 +225,20 @@ impl StateData {
         // Fetch some info about the tilemap and its atlas
         let (tile_size, texture) = match queries.tilemap_query.get(world, self.tilemap_entity) {
             Ok(x) => (x.tile_size.into(), x.texture.clone()),
-            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
-                tilemap_entity: self.tilemap_entity,
-                query_error,
-            }),
+            Err(query_error) => {
+                return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
+                    tilemap_entity: self.tilemap_entity,
+                    query_error,
+                })
+            }
         };
         let atlas_size = match world.resource::<Assets<Image>>().get(&self.tilemap_texture) {
             Some(x) => x.size(),
-            None => return Message::ShowErrorAndExitEditing(EditorError::InvalidImageHandle {
-                handle: self.tilemap_texture.clone_weak(),
-            }),
+            None => {
+                return Message::ShowErrorAndExitEditing(EditorError::InvalidImageHandle {
+                    handle: self.tilemap_texture.clone_weak(),
+                })
+            }
         };
 
         if ui.button("Exit").clicked() {
@@ -230,9 +247,8 @@ impl StateData {
 
         ui.separator();
 
-       ui.horizontal(|ui| {
-            self.tools.iter().enumerate()
-            .for_each(|(id, tool)| {
+        ui.horizontal(|ui| {
+            self.tools.iter().enumerate().for_each(|(id, tool)| {
                 ui.selectable_value(&mut self.current_tool, id, tool.name());
             })
         });
@@ -265,21 +281,12 @@ impl StateData {
 
         let mut tile_rgba = self.palette_state.color.0.as_rgba_f32();
         ui.color_edit_button_rgba_unmultiplied(&mut tile_rgba);
-        self.palette_state.color.0 = Color::rgba(
-            tile_rgba[0],
-            tile_rgba[1],
-            tile_rgba[2],
-            tile_rgba[3],
-        );
-
+        self.palette_state.color.0 =
+            Color::rgba(tile_rgba[0], tile_rgba[1], tile_rgba[2], tile_rgba[3]);
 
         ui.separator();
 
-        self.tile_props_ui(
-            lock.access_tileset_data(texture),
-            world,
-            ui,
-        );
+        self.tile_props_ui(lock.access_tileset_data(texture), world, ui);
 
         // TODO make the keys configurable
         if ui.input(|x| x.key_pressed(egui::Key::H)) {
@@ -333,10 +340,8 @@ impl StateData {
         // still paint themselves on top of other widgets
         let viewport_rect = ui.clip_rect();
         let mut clip_rect = viewport_rect;
-        clip_rect.set_top(
-            ui.min_rect().top() -
-            egui_dock::Style::default().default_inner_margin.top
-        );
+        clip_rect
+            .set_top(ui.min_rect().top() - egui_dock::Style::default().default_inner_margin.top);
         let mut painter = ui.painter_at(clip_rect);
         painter.set_layer_id(egui::LayerId::background());
 
@@ -349,10 +354,12 @@ impl StateData {
         };
         let tilemap = match queries.tilemap_query.get(world, self.tilemap_entity) {
             Ok(x) => x,
-            Err(query_error) => return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
-                tilemap_entity: self.tilemap_entity,
-                query_error,
-            }),
+            Err(query_error) => {
+                return Message::ShowErrorAndExitEditing(EditorError::BadTilemapEntity {
+                    tilemap_entity: self.tilemap_entity,
+                    query_error,
+                })
+            }
         };
 
         // Compute the display rects
@@ -367,8 +374,9 @@ impl StateData {
             egui::Stroke::new(2.0, egui::Color32::RED),
         );
 
-        let hovered_tile = ui.input(|x| x.pointer.hover_pos())
-            .and_then(|p|global_pos_to_local(p, tilemap_rect))
+        let hovered_tile = ui
+            .input(|x| x.pointer.hover_pos())
+            .and_then(|p| global_pos_to_local(p, tilemap_rect))
             .map(|p| gridify_int(p, grid_sample_rect.size()))
             .filter(|_| ui.ui_contains_pointer());
 
@@ -399,14 +407,14 @@ impl StateData {
                         // TODO better error reporting (show in ui)
                         error!("Error: {e}");
 
-                        return Message::StartPickingTilemap
-                    },
+                        return Message::StartPickingTilemap;
+                    }
                     _ => (),
                 }
-            },
+            }
             None => {
                 ui.label("Pos: out of bounds");
-            },
+            }
         }
 
         Message::None

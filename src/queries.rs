@@ -1,6 +1,6 @@
-use bevy::{prelude::*, ecs::query::WorldQuery};
-use bevy_editor_pls::egui;
+use bevy::{ecs::query::WorldQuery, prelude::*};
 use bevy_ecs_tilemap::prelude::*;
+use bevy_editor_pls::egui;
 
 #[derive(bevy::ecs::query::WorldQuery)]
 #[world_query(mutable)]
@@ -32,7 +32,8 @@ impl TilemapPoints {
         egui::Rect {
             min: egui::pos2(p1.x, p2.y),
             max: egui::pos2(p2.x, p1.y),
-        }.translate(self.viewport_rect.min.to_vec2())
+        }
+        .translate(self.viewport_rect.min.to_vec2())
     }
 
     pub fn grid_sample_rect(&self) -> egui::Rect {
@@ -42,7 +43,8 @@ impl TilemapPoints {
         egui::Rect {
             min: egui::pos2(p1.x, p2.y),
             max: egui::pos2(p2.x, p1.y),
-        }.translate(self.viewport_rect.min.to_vec2())
+        }
+        .translate(self.viewport_rect.min.to_vec2())
     }
 
     fn bevy_viewport_to_egui(&self, v: Vec2) -> egui::Pos2 {
@@ -70,10 +72,11 @@ impl<'a> TilemapCameraQueryItem<'a> {
         let reftile_origin_off = Vec2::from(tilemap.tile_size) / 2.0f32;
         let map_lower_left = tilemap.transform.translation().truncate() - reftile_origin_off;
         let grid_sample_top_right = map_lower_left + Vec2::from(tilemap.grid_size);
-        let map_top_right = map_lower_left + Vec2::new(
-            (tilemap.size.x as f32) * tilemap.grid_size.x,
-            (tilemap.size.y as f32) * tilemap.grid_size.y,
-        );
+        let map_top_right = map_lower_left
+            + Vec2::new(
+                (tilemap.size.x as f32) * tilemap.grid_size.x,
+                (tilemap.size.y as f32) * tilemap.grid_size.y,
+            );
 
         TilemapPoints {
             viewport_rect,
@@ -84,10 +87,12 @@ impl<'a> TilemapCameraQueryItem<'a> {
     }
 
     fn world_to_viewport(&self, pos: Vec2) -> Vec2 {
-        self.camera.world_to_viewport(
-            &(GlobalTransform::IDENTITY * *self.transform),
-            pos.extend(1.0),
-        ).expect("Transforming failed")
+        self.camera
+            .world_to_viewport(
+                &(GlobalTransform::IDENTITY * *self.transform),
+                pos.extend(1.0),
+            )
+            .expect("Transforming failed")
     }
 }
 
@@ -120,7 +125,10 @@ impl EditorQueryStorage {
         }
     }
 
-    fn access_query<'a, Q: WorldQuery>(opt: &'a mut Option<QueryState<Q>>, world: &mut World) -> &'a mut QueryState<Q> {
+    fn access_query<'a, Q: WorldQuery>(
+        opt: &'a mut Option<QueryState<Q>>,
+        world: &mut World,
+    ) -> &'a mut QueryState<Q> {
         let r = opt.get_or_insert_with(|| world.query());
 
         r.update_archetypes(world);

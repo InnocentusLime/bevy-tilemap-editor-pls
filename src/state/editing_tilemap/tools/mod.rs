@@ -1,19 +1,19 @@
-mod tile_painter;
 mod tile_eraser;
-mod tile_whois;
+mod tile_painter;
 mod tile_picker;
+mod tile_whois;
 
+use crate::coord_utils::tile_id_to_pos;
+use crate::queries::{TilePropertyQuery, TilemapPoints, TilemapQuery};
 use bevy::prelude::*;
 use bevy_editor_pls::egui::{self, Painter};
-use crate::queries::{ TilePropertyQuery, TilemapPoints, TilemapQuery };
-use crate::coord_utils::tile_id_to_pos;
 
 use super::*;
 
-pub use tile_painter::TilePainter;
 pub use tile_eraser::TileEraser;
-pub use tile_whois::TileWhoIs;
+pub use tile_painter::TilePainter;
 pub use tile_picker::TilePicker;
+pub use tile_whois::TileWhoIs;
 
 pub type Result<T> = core::result::Result<T, EditorError>;
 
@@ -69,7 +69,9 @@ impl<'w, 's> ToolContext<'w, 's> {
     }
 
     pub fn get_tile(&self, pos: TilePos) -> Result<Option<Entity>> {
-        let storage = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
+        let storage = self
+            .tilemap_query
+            .get_manual(&self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -79,10 +81,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         Ok(storage.get(&pos))
     }
 
-    pub fn despawn_tile(
-        &mut self,
-        pos: TilePos,
-    ) -> Result<()> {
+    pub fn despawn_tile(&mut self, pos: TilePos) -> Result<()> {
         let Some(tile_entity) = self.get_tile(pos)? else { return Ok(()); };
 
         if !self.world.despawn(tile_entity) {
@@ -92,7 +91,8 @@ impl<'w, 's> ToolContext<'w, 's> {
             )
         }
 
-        self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
+        self.tilemap_query
+            .get_mut(&mut self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -103,21 +103,21 @@ impl<'w, 's> ToolContext<'w, 's> {
         Ok(())
     }
 
-    pub fn set_tile_properties(
-        &mut self,
-        tile_pos: TilePos,
-        props: TileProperties,
-    ) -> Result<()> {
+    pub fn set_tile_properties(&mut self, tile_pos: TilePos, props: TileProperties) -> Result<()> {
         let tile_entity = match self.get_tile(tile_pos)? {
             Some(x) => x,
             None => {
-                let tile_entity = self.world.spawn(TileBundle {
-                    tilemap_id: TilemapId(self.tilemap_entity),
-                    position: tile_pos,
-                    ..default()
-                }).id();
+                let tile_entity = self
+                    .world
+                    .spawn(TileBundle {
+                        tilemap_id: TilemapId(self.tilemap_entity),
+                        position: tile_pos,
+                        ..default()
+                    })
+                    .id();
 
-                self.tilemap_query.get_mut(&mut self.world, self.tilemap_entity)
+                self.tilemap_query
+                    .get_mut(&mut self.world, self.tilemap_entity)
                     .map_err(|query_error| EditorError::BadTilemapEntity {
                         tilemap_entity: self.tilemap_entity,
                         query_error,
@@ -126,9 +126,11 @@ impl<'w, 's> ToolContext<'w, 's> {
                     .set(&tile_pos, tile_entity);
 
                 tile_entity
-            },
+            }
         };
-        let mut props_item = self.tile_query.get_mut(&mut self.world, tile_entity)
+        let mut props_item = self
+            .tile_query
+            .get_mut(&mut self.world, tile_entity)
             .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
@@ -164,7 +166,9 @@ impl<'w, 's> ToolContext<'w, 's> {
         let Some(tile_entity) = self.get_tile(tile_pos)? else {
             return Ok(None)
         };
-        let props_item = self.tile_query.get_manual(&self.world, tile_entity)
+        let props_item = self
+            .tile_query
+            .get_manual(&self.world, tile_entity)
             .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
@@ -178,14 +182,11 @@ impl<'w, 's> ToolContext<'w, 's> {
                 color: *props_item.color,
                 flip: *props_item.flip,
                 texture: *props_item.texture,
-            }
+            },
         )))
     }
 
-    pub fn tile_rect(
-        &self,
-        pos: TilePos,
-    ) -> egui::Rect {
+    pub fn tile_rect(&self, pos: TilePos) -> egui::Rect {
         let sample_rect = self.points.grid_sample_rect();
         let sample_size = sample_rect.size();
         let offset = egui::vec2(
@@ -198,11 +199,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         sample_rect.translate(offset)
     }
 
-    fn brush_mesh(
-        &self,
-        rect: egui::Rect,
-        uv: egui::Rect,
-    ) -> egui::Shape {
+    fn brush_mesh(&self, rect: egui::Rect, uv: egui::Rect) -> egui::Shape {
         let [r, g, b, a] = self.brush_state.color.0.as_rgba_f32();
         let color = egui::Color32::from_rgba_unmultiplied(
             (r * 255.0) as u8,
@@ -212,10 +209,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         );
         let mut mesh = egui::Mesh::with_texture(self.tilemap_texture_egui);
 
-        mesh.indices.extend([
-            0, 1, 2,
-            0, 2, 3,
-        ]);
+        mesh.indices.extend([0, 1, 2, 0, 2, 3]);
         mesh.vertices.extend([
             egui::epaint::Vertex {
                 color,
@@ -238,7 +232,6 @@ impl<'w, 's> ToolContext<'w, 's> {
                 uv: uv.left_bottom(),
             },
         ]);
-
 
         let trans = rect.center().to_vec2();
 
@@ -264,10 +257,9 @@ impl<'w, 's> ToolContext<'w, 's> {
         }
 
         // Apply the scale
-        mesh.vertices.iter_mut().for_each(|v| v.pos = egui::pos2(
-            scale.x * v.pos.x,
-            scale.y * v.pos.y,
-        ));
+        mesh.vertices
+            .iter_mut()
+            .for_each(|v| v.pos = egui::pos2(scale.x * v.pos.x, scale.y * v.pos.y));
 
         // Reapply translate
         mesh.translate(trans);
@@ -275,24 +267,16 @@ impl<'w, 's> ToolContext<'w, 's> {
         egui::Shape::mesh(mesh)
     }
 
-    pub fn paint_tile(
-        &self,
-        ui_rect: egui::Rect,
-        painter: &Painter,
-    ) -> Result<()> {
-        painter.add(self.brush_mesh(
-            ui_rect,
-            self.tile_info(self.brush_state.texture.0)?,
-        ));
+    pub fn paint_tile(&self, ui_rect: egui::Rect, painter: &Painter) -> Result<()> {
+        painter.add(self.brush_mesh(ui_rect, self.tile_info(self.brush_state.texture.0)?));
 
         Ok(())
     }
 
-    fn tile_info(
-        &self,
-        id: u32,
-    ) -> Result<egui::Rect> {
-        let tilemap = self.tilemap_query.get_manual(&self.world, self.tilemap_entity)
+    fn tile_info(&self, id: u32) -> Result<egui::Rect> {
+        let tilemap = self
+            .tilemap_query
+            .get_manual(&self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -301,7 +285,10 @@ impl<'w, 's> ToolContext<'w, 's> {
         match &tilemap.texture {
             TilemapTexture::Single(x) => {
                 let tile_size = bevy_to_egui(tilemap.tile_size.into());
-                let atlas_size = self.world.resource::<Assets<Image>>().get(x)
+                let atlas_size = self
+                    .world
+                    .resource::<Assets<Image>>()
+                    .get(x)
                     .ok_or(EditorError::InvalidImageHandle {
                         handle: x.clone_weak(),
                     })?
@@ -313,16 +300,15 @@ impl<'w, 's> ToolContext<'w, 's> {
                     min: egui::pos2(uv.min.x / atlas_size.x, uv.min.y / atlas_size.y),
                     max: egui::pos2(uv.max.x / atlas_size.x, uv.max.y / atlas_size.y),
                 })
-            },
+            }
             TilemapTexture::Vector(_) => Err(EditorError::UnsupportedTilemapTextureType("Vector")),
-            TilemapTexture::TextureContainer(_) => Err(EditorError::UnsupportedTilemapTextureType("TextureContainer")),
+            TilemapTexture::TextureContainer(_) => Err(EditorError::UnsupportedTilemapTextureType(
+                "TextureContainer",
+            )),
         }
     }
 
-    pub fn copy_tile_properties(
-        &mut self,
-        tile_pos: TilePos,
-    ) -> Result<()> {
+    pub fn copy_tile_properties(&mut self, tile_pos: TilePos) -> Result<()> {
         let Some((tile_entity, props)) = self.get_tile_properties(tile_pos)? else { return Ok(()) };
         let tile_entity = self.world.entity(tile_entity);
 

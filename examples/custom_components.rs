@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use bevy_editor_pls::{EditorPlugin, default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera}};
-use bevy_tilemap_editor_pls::{TilemapEditorPlugin, EditorTileDataRegistry};
-
+use bevy_editor_pls::{
+    default_windows::cameras::{camera_2d_panzoom::PanCamControls, EditorCamera},
+    EditorPlugin,
+};
+use bevy_tilemap_editor_pls::{EditorTileDataRegistry, TilemapEditorPlugin};
 
 #[derive(Default, Component, Clone, Copy, Reflect)]
 #[reflect(Component)]
@@ -40,52 +42,51 @@ fn startup(
     // Setup custom data
     let tileset_info = TilemapTexture::Single(texture_handle.cast_weak());
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(0)
-    )
-    .insert(GrassHeight(10)).unwrap()
-    .insert(GroundTag).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(0))
+        .insert(GrassHeight(10))
+        .unwrap()
+        .insert(GroundTag)
+        .unwrap();
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(1),
-    )
-    .insert(WaterTag).unwrap()
-    .insert(GrassHeight(5)).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(1))
+        .insert(WaterTag)
+        .unwrap()
+        .insert(GrassHeight(5))
+        .unwrap();
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(2),
-    )
-    .insert(GroundTag).unwrap()
-    .insert(GrassHeight(0)).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(2))
+        .insert(GroundTag)
+        .unwrap()
+        .insert(GrassHeight(0))
+        .unwrap();
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(3),
-    )
-    .insert(GroundTag).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(3))
+        .insert(GroundTag)
+        .unwrap();
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(4),
-    )
-    .insert(GroundTag).unwrap()
-    .insert(HiddenMinerals::Coal).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(4))
+        .insert(GroundTag)
+        .unwrap()
+        .insert(HiddenMinerals::Coal)
+        .unwrap();
 
-    editor_registry.lock().edit_tile_data(
-        &app_registry,
-        tileset_info.clone(),
-        TileTextureIndex(5),
-    )
-    .insert(GroundTag).unwrap()
-    .insert(HiddenMinerals::Diamonds).unwrap();
+    editor_registry
+        .lock()
+        .edit_tile_data(&app_registry, tileset_info.clone(), TileTextureIndex(5))
+        .insert(GroundTag)
+        .unwrap()
+        .insert(HiddenMinerals::Diamonds)
+        .unwrap();
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
     let grid_size = tile_size.into();

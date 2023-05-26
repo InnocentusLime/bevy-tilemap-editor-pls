@@ -1,11 +1,14 @@
 use bevy::prelude::*;
-use bevy_editor_pls::{editor_window::{EditorWindow, EditorWindowContext}, egui, AddEditorWindow};
+use bevy_editor_pls::{
+    editor_window::{EditorWindow, EditorWindowContext},
+    egui, AddEditorWindow,
+};
 
-mod state;
-mod queries;
-mod tile_data;
 mod coord_utils;
 mod error;
+mod queries;
+mod state;
+mod tile_data;
 
 pub use error::EditorError;
 pub use state::EditorState;
@@ -18,11 +21,15 @@ impl EditorWindow for TilemapEditorWindow {
     const NAME: &'static str = "Tilemap editor";
 
     fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
-        cx.state_mut::<Self>().expect("Failed to acquire own state").ui(world, ui)
+        cx.state_mut::<Self>()
+            .expect("Failed to acquire own state")
+            .ui(world, ui)
     }
 
     fn viewport_ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
-        cx.state_mut::<Self>().expect("Failed to acquire own state").viewport_ui(world, ui)
+        cx.state_mut::<Self>()
+            .expect("Failed to acquire own state")
+            .viewport_ui(world, ui)
     }
 }
 
@@ -31,8 +38,7 @@ pub struct TilemapEditorPlugin;
 
 impl Plugin for TilemapEditorPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<EditorTileDataRegistry>()
+        app.init_resource::<EditorTileDataRegistry>()
             .add_editor_window::<TilemapEditorWindow>();
     }
 }

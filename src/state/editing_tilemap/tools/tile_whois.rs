@@ -1,11 +1,9 @@
 use super::*;
 
-use bevy_editor_pls::egui;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_editor_pls::egui;
 
-fn flip_flags_to_rotation(
-    flip: TileFlip
-) -> &'static str {
+fn flip_flags_to_rotation(flip: TileFlip) -> &'static str {
     // d x y
     let table = [
         /* 0 DXY */ "No transform",
@@ -18,11 +16,7 @@ fn flip_flags_to_rotation(
         /* 7 dxy */ "Rotated 90°, then flipped horizontally",
     ];
 
-    table[
-        flip.d as usize |
-        (flip.x as usize) << 1 |
-        (flip.y as usize) << 2
-    ]
+    table[flip.d as usize | (flip.x as usize) << 1 | (flip.y as usize) << 2]
 }
 
 #[derive(Debug)]
@@ -44,27 +38,15 @@ impl Tool for TileWhoIs {
         painter.rect_stroke(
             display_rect,
             0.0,
-            egui::Stroke::new(1.0, egui::Color32::RED)
+            egui::Stroke::new(1.0, egui::Color32::RED),
         );
 
         let ent_and_props = ctx.get_tile_properties(hovered_tile)?;
         if let Some((ent, props)) = ent_and_props {
-            ui.label(format!(
-                "Entity ID: {}",
-                ent.index(),
-            ));
-            ui.label(format!(
-                "Diagonal flip: {}",
-                props.flip.d as u8,
-            ));
-            ui.label(format!(
-                "Horizontal flip: {}",
-                props.flip.x as u8,
-            ));
-            ui.label(format!(
-                "Vertical flip: {}",
-                props.flip.y as u8,
-            ));
+            ui.label(format!("Entity ID: {}", ent.index(),));
+            ui.label(format!("Diagonal flip: {}", props.flip.d as u8,));
+            ui.label(format!("Horizontal flip: {}", props.flip.x as u8,));
+            ui.label(format!("Vertical flip: {}", props.flip.y as u8,));
             ui.label(format!(
                 "Transform:\n {}",
                 flip_flags_to_rotation(props.flip),

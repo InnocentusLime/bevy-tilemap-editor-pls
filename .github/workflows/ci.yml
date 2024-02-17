@@ -13,8 +13,8 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v3
             - name: Install alsa and udev
-              run: sudo apt-get update --fix-missing; sudo apt-get install --no-install-recommends
-            - name: Test
+              run: sudo apt-get update --fix-missing; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+            - name: Run clippy
               run: cargo clippy -- -D warnings
     test:
         runs-on: ubuntu-latest

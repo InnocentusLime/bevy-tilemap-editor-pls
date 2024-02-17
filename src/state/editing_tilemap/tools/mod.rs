@@ -46,6 +46,7 @@ pub struct ToolContext<'w, 's> {
 }
 
 impl<'w, 's> ToolContext<'w, 's> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         world: &'w mut World,
         points: TilemapPoints,
@@ -71,7 +72,7 @@ impl<'w, 's> ToolContext<'w, 's> {
     pub fn get_tile(&self, pos: TilePos) -> Result<Option<Entity>> {
         let storage = self
             .tilemap_query
-            .get_manual(&self.world, self.tilemap_entity)
+            .get_manual(self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -86,7 +87,7 @@ impl<'w, 's> ToolContext<'w, 's> {
 
         self.world.entity_mut(tile_entity).despawn_recursive();
         self.tilemap_query
-            .get_mut(&mut self.world, self.tilemap_entity)
+            .get_mut(self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,
@@ -111,7 +112,7 @@ impl<'w, 's> ToolContext<'w, 's> {
                     .id();
 
                 self.tilemap_query
-                    .get_mut(&mut self.world, self.tilemap_entity)
+                    .get_mut(self.world, self.tilemap_entity)
                     .map_err(|query_error| EditorError::BadTilemapEntity {
                         tilemap_entity: self.tilemap_entity,
                         query_error,
@@ -124,7 +125,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         };
         let mut props_item = self
             .tile_query
-            .get_mut(&mut self.world, tile_entity)
+            .get_mut(self.world, tile_entity)
             .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
@@ -162,7 +163,7 @@ impl<'w, 's> ToolContext<'w, 's> {
         };
         let props_item = self
             .tile_query
-            .get_manual(&self.world, tile_entity)
+            .get_manual(self.world, tile_entity)
             .map_err(|query_error| EditorError::BadTileEntity {
                 tile_pos,
                 tile_entity,
@@ -270,7 +271,7 @@ impl<'w, 's> ToolContext<'w, 's> {
     fn tile_info(&self, id: u32) -> Result<egui::Rect> {
         let tilemap = self
             .tilemap_query
-            .get_manual(&self.world, self.tilemap_entity)
+            .get_manual(self.world, self.tilemap_entity)
             .map_err(|query_error| EditorError::BadTilemapEntity {
                 tilemap_entity: self.tilemap_entity,
                 query_error,

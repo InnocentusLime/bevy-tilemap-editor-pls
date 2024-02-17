@@ -27,7 +27,7 @@ impl Tool for TilePainter {
         );
 
         if ui.input(|x| x.pointer.button_down(egui::PointerButton::Primary)) {
-            ctx.set_tile_properties(hovered_tile, ctx.brush_state.clone())?;
+            ctx.set_tile_properties(hovered_tile, *ctx.brush_state)?;
         }
 
         Ok(())

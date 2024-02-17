@@ -61,7 +61,7 @@ impl<'a> TilePalette<'a> {
         tile_id: u32,
     ) {
         let local_pos = tile_id_to_pos(tile_id, self.palette_size, self.tile_size);
-        let selected_tile_pos = Self::local_coords_to_global(local_pos, &palette_response);
+        let selected_tile_pos = Self::local_coords_to_global(local_pos, palette_response);
 
         painter.rect_stroke(
             egui::Rect::from_min_size(selected_tile_pos, self.tile_size),

@@ -81,9 +81,9 @@ mod flip_rotation {
 
     #[inline]
     fn internal_to_flip(x: u8, flip: &mut TileFlip) {
-        flip.x = (x & 0b100_0) == 0b100_0;
-        flip.d = (x & 0b010_0) == 0b010_0;
-        flip.y = (x & 0b001_0) == 0b001_0;
+        flip.x = (x & 0b1000) == 0b1000;
+        flip.d = (x & 0b0100) == 0b0100;
+        flip.y = (x & 0b0010) == 0b0010;
     }
 
     // Special mask that helps us flip bits based up the evenness of bit
@@ -91,9 +91,9 @@ mod flip_rotation {
     #[inline]
     fn flip_mask(x: u8) -> u8 {
         if x.count_ones() % 2 == 0 {
-            0b111_0
+            0b1110
         } else {
-            0b000_0
+            0b0000
         }
     }
 
@@ -101,10 +101,10 @@ mod flip_rotation {
     fn seq_lshift(x: u8) -> u8 {
         let shifted = x << 1;
 
-        if x == 0b111_0 {
-            0b001_0
-        } else if shifted & 0b1_000_0 == 0b1_000_0 {
-            0b111_0
+        if x == 0b1110 {
+            0b0010
+        } else if shifted & 0b10000 == 0b10000 {
+            0b1110
         } else {
             shifted
         }
@@ -114,10 +114,10 @@ mod flip_rotation {
     fn seq_rshift(x: u8) -> u8 {
         let shifted = x >> 1;
 
-        if x == 0b111_0 {
-            0b100_0
-        } else if shifted & 0b000_1 == 0b000_1 {
-            0b111_0
+        if x == 0b1110 {
+            0b1000
+        } else if shifted & 0b0001 == 0b0001 {
+            0b1110
         } else {
             shifted
         }
@@ -332,7 +332,7 @@ impl StateData {
         world: &mut World,
         ui: &mut egui::Ui,
     ) -> Message {
-        let mut queries = shared.query_storage.queries(world);
+        let queries = shared.query_storage.queries(world);
         let tile_data = world.resource::<EditorTileDataRegistry>().clone();
         let mut lock = tile_data.lock();
 
@@ -392,8 +392,8 @@ impl StateData {
                         ref_points,
                         self.tilemap_entity,
                         self.tilemap_texture_egui,
-                        &mut queries.tile_query,
-                        &mut queries.tilemap_query,
+                        queries.tile_query,
+                        queries.tilemap_query,
                         lock.access_tileset_data(tilemap.texture.clone()),
                         &mut self.palette_state,
                     ),
@@ -402,14 +402,10 @@ impl StateData {
                     &painter,
                 );
 
-                match res {
-                    Err(e @ EditorError::BadTilemapEntity { .. }) => {
-                        // TODO better error reporting (show in ui)
-                        error!("Error: {e}");
+                if let Err(e @ EditorError::BadTilemapEntity { .. }) = res {
+                    error!("Error: {e}");
 
-                        return Message::StartPickingTilemap;
-                    }
-                    _ => (),
+                    return Message::StartPickingTilemap;
                 }
             }
             None => {
